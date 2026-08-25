@@ -86,7 +86,7 @@ it a few minutes later, unless you resume first.
 
 Everything stays on your phone. Nothing is uploaded, and Android's own
 backup is switched off, so
-## rides will not be restored automatically.
+**rides will not be restored automatically.**
 
 Export them yourself: on both the Rides and Places screens, tap the three dots, then
 **Export**.  Both write a JSON file wherever you point them, and Import reads them back.

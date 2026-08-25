@@ -36,6 +36,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import org.fossridemeter.app.R
 
@@ -53,9 +59,16 @@ import org.fossridemeter.app.R
  * That answer has to be reachable from inside the app.
  *
  * The renderer below handles the little of markdown the document
- * actually uses. It is not a markdown library and shouldn't become one:
- * if a document needs more than this, the document is too elaborate for
- * a screen someone reads while standing next to their car.
+ * actually uses - headings, lists, bold, code, links - and agrees with
+ * a real markdown renderer about all of it, including where it decides
+ * something isn't emphasis after all. That matters more than the
+ * feature list: the author edits the file, sees what it does here, and
+ * has to be able to trust that what they saw is what everyone reading
+ * it on the web sees too.
+ *
+ * It is still not a markdown library and shouldn't become one. If a
+ * document needs more than this, the document is too elaborate for a
+ * screen someone reads while standing next to their car.
  */
 @Composable
 fun HelpScreen() {
@@ -91,13 +104,13 @@ private fun HelpBlock(block: Block) {
         is Block.Heading ->
             if (block.level == 1) {
                 Text(
-                    text = plain(block.text),
+                    text = styled(block.text),
                     style = MaterialTheme.typography.headlineSmall
                 )
             } else {
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = plain(block.text),
+                    text = styled(block.text),
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(Modifier.height(2.dp))
@@ -106,7 +119,7 @@ private fun HelpBlock(block: Block) {
         is Block.Paragraph ->
             if (block.marker.isEmpty()) {
                 Text(
-                    text = plain(block.text),
+                    text = styled(block.text),
                     style = MaterialTheme.typography.bodyMedium
                 )
             } else {
@@ -124,7 +137,7 @@ private fun HelpBlock(block: Block) {
                         modifier = Modifier.width(24.dp)
                     )
                     Text(
-                        text = plain(block.text),
+                        text = styled(block.text),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -244,19 +257,77 @@ private val NUMBERED = Regex("(\\d+\\.) (.*)")
 
 private val LINK = Regex("\\[([^]]+)]\\(([^)]+)\\)")
 
+private val BOLD = SpanStyle(fontWeight = FontWeight.Bold)
+
+private val CODE = SpanStyle(fontFamily = FontFamily.Monospace)
+
 /**
- * Strips the markdown that would otherwise be read aloud as punctuation.
+ * Renders the inline markdown the document uses.
  *
- * Emphasis and code markers simply go: a screen reading `**Location**`
- * or `` `Settings()` `` at somebody is worse than one that reads neither.
+ * `**bold**` is drawn bold and `` `code` `` monospaced, rather than
+ * being stripped to plain text: a screen that quietly swallowed the
+ * emphasis someone wrote sends them looking for something that does
+ * show up, and what they reach for is a heading in the middle of a
+ * sentence.
+ *
+ * An emphasis marker only opens when a non-space follows it and only
+ * closes when a non-space precedes it, which is the CommonMark rule.
+ * `** like this **` is therefore left as the literal asterisks a
+ * markdown renderer would also show - the same wrong result in both
+ * places, which is the point: a divergence here would mean the
+ * repository copy and the screen disagree about what the author meant.
+ *
  * A link becomes its text followed by its target, because the target is
  * often a URL worth typing and there is nothing here to tap.
  */
-private fun plain(markdown: String): String =
-    LINK.replace(markdown) { match ->
+internal fun styled(markdown: String): AnnotatedString {
+
+    val text = LINK.replace(markdown) { match ->
         val label = match.groupValues[1]
         val target = match.groupValues[2]
         if (label == target) label else "$label ($target)"
     }
-        .replace("**", "")
-        .replace("`", "")
+
+    return buildAnnotatedString {
+
+        var i = 0
+
+        while (i < text.length) {
+
+            val marker = when {
+                text.startsWith("**", i) -> "**"
+                text[i] == '`' -> "`"
+                else -> null
+            }
+
+            val open = if (marker == null) -1 else i + marker.length
+
+            // Code spans may hold spaces; emphasis may not sit against
+            // one on the inside of either marker.
+            val close =
+                if (marker == null || open >= text.length) {
+                    -1
+                } else if (marker == "`") {
+                    text.indexOf(marker, open)
+                } else if (text[open].isWhitespace()) {
+                    -1
+                } else {
+                    text.indexOf(marker, open)
+                        .takeIf { it > open && !text[it - 1].isWhitespace() }
+                        ?: -1
+                }
+
+            if (marker == null || close < 0) {
+                append(text[i])
+                i++
+                continue
+            }
+
+            withStyle(if (marker == "`") CODE else BOLD) {
+                append(text.substring(open, close))
+            }
+
+            i = close + marker.length
+        }
+    }
+}

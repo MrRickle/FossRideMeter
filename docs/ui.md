@@ -112,12 +112,31 @@ copies it into `res/raw/help.md` (the `copyQuickstart` task in
 repository, the README link, and the screen cannot drift apart. Edit the
 markdown, not the screen.
 
-The renderer handles headings, bullets, numbered steps, and wrapped
-continuation lines, and strips the emphasis, code, and link markup that
-would otherwise be read as punctuation — a link becomes its text followed
-by its target, since there is nothing here to tap. It is deliberately not
-a markdown library: a document that needs more than this is too elaborate
-for something read while standing next to a car.
+The renderer handles headings, bullets, numbered steps, bold, code
+spans, and links. A link becomes its text followed by its target, since
+there is nothing here to tap. Paragraphs are reflowed rather than drawn
+one line per source line: the file is hard-wrapped to fit an editor, a
+phone is a different width, and wrapping twice gives a ragged column.
+Markdown's two-space hard break still breaks, so a deliberate line
+break in the source survives. List markers sit in their own column, so
+a wrapped step's second line lands under its first instead of reading
+as the next step.
+
+It is deliberately not a markdown library — a document needing more
+than this is too elaborate for something read while standing next to a
+car — but everything it *does* handle has to match what a web markdown
+renderer does with the same file. That includes the negative cases:
+emphasis will not open on a space, so `** like this **` renders as
+literal asterisks here exactly as it does on GitHub. The author edits
+one file and sees the result on this screen; if the two disagreed, the
+screen would be telling them their document is right when the web will
+show it wrong. `HelpMarkdownTest` covers it.
+
+Bold was stripped rather than rendered in the first version of this
+screen. The cost was immediate and worth remembering: emphasis that had
+been typed correctly showed up as nothing, which reads as "bold doesn't
+work here" and sends the author looking for something that does — in
+that instance an `##` heading in the middle of a sentence.
 
 It exists because the README is no use to the person who most needs it —
 someone who has just sideloaded the APK, been refused a permission by a
