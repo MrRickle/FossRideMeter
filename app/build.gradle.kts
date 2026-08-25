@@ -130,6 +130,29 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Debug builds are signed with the release key when it is
+            // available, so a debug build and a published APK install
+            // over each other and the rides survive the swap.
+            //
+            // Android refuses an install whose signature differs from
+            // the one already on the device, and the only way past that
+            // refusal is an uninstall, which deletes the database. With
+            // the default debug key that made every trip between a test
+            // build and the real one cost a phone's history - and it is
+            // not one key against another, it is three: Android Studio
+            // signs with ~/.android/debug.keystore, a Gradle invocation
+            // that cannot read that file generates its own, so even two
+            // debug builds of the same commit could refuse each other.
+            //
+            // Falls back to the generated debug key when
+            // keystore.properties isn't there, so a clone of this
+            // repository still builds.
+            if (keystorePropertiesFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
+
         release {
             signingConfig = signingConfigs.getByName("release")
 

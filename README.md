@@ -101,8 +101,13 @@ bundled `android-studio/jbr` works) before invoking Gradle:
 
 `compileSdk`/`targetSdk` 37, `minSdk` 26, JVM toolchain 17.
 
-Release signing reads an optional `keystore.properties` in the project
-root; it and `local.properties` are local-only and not in version control.
+Signing reads an optional `keystore.properties` in the project root; it
+and `local.properties` are local-only and not in version control. When
+it is present, debug builds are signed with that key as well, so a debug
+build and a released APK install over each other instead of forcing the
+uninstall that would wipe the rides. Without it, debug builds fall back
+to the generated debug key and release builds are the ones that fail —
+the right way round for a key nobody else should have.
 
 Every `.kt` file carries an SPDX license header. After adding source files,
 run `./add_license_headers.sh` — it is idempotent.
