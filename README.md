@@ -39,6 +39,19 @@ mind losing, using the JSON export.
   hardware. Tracking uses real GPS by default; the simulator is a
   Settings away.
 
+## Screenshots
+
+| Metering a ride | Ride history | A ride's detail |
+|---|---|---|
+| <img src="docs/screenshots/metering.png" width="240" alt="The live screen: total amount, RUNNING with PAUSE, ADD STOP, SAVE and CANCEL, GPS status, distance and elapsed time"> | <img src="docs/screenshots/rides.png" width="240" alt="The rides table listing saved rides by name, amount and distance"> | <img src="docs/screenshots/ride-detail.png" width="240" alt="One ride's detail, including its stops and the time spent stopped"> |
+
+| Places | Editing a place | Rates |
+|---|---|---|
+| <img src="docs/screenshots/places.png" width="240" alt="The places table, with named places and one unnamed geohash placeholder"> | <img src="docs/screenshots/place-editor.png" width="240" alt="The place editor with name, coordinates, radius and the two automatic switches"> | <img src="docs/screenshots/settings.png" width="240" alt="Rate settings: per mile, per hour, and a separate rate for time spent at a stop"> |
+
+Demo data on an emulator — the rides above were metered by the built-in
+simulator, and the coordinates are fictional.
+
 ## Requirements
 
 Android 8.0 (API 26) or newer.
