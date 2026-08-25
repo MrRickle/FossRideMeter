@@ -325,8 +325,11 @@ right now.
 implementations are selected by `Settings.distanceProvider`:
 
 * `GpsDistanceProvider` — fused location. `Settings.minimumSpeedMps` gates
-  whether movement counts at all; reported accuracy buckets into
-  `DistanceStatus.GOOD` (≤ 10 m), `POOR` (≤ 30 m), or `WAITING`.
+  whether movement counts at all, defaulting to 3 mph (`1.34112` m/s) so a
+  parked phone's drift isn't billed as distance; reported accuracy buckets
+  into `DistanceStatus.GOOD` (≤ 10 m), `POOR` (≤ 30 m), or `WAITING`. See
+  "The Minimum Speed Defaults to 3 mph" in `decisions.md` for why the
+  threshold sits at walking pace rather than near traffic speed.
 * `SimulatedDistanceProvider` — a scripted timeline of legs, so the whole
   UI can be exercised with no GPS hardware. Selected in Settings;
   `GpsDistanceProvider` is what a fresh install gets.

@@ -25,6 +25,7 @@ package org.fossridemeter.app.service
 import org.fossridemeter.app.model.DistanceUnit
 import org.fossridemeter.app.model.Ride
 import org.fossridemeter.app.model.Settings
+import org.fossridemeter.app.util.distanceToUnit
 import org.fossridemeter.app.util.toDisplayRate
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -127,6 +128,21 @@ class AmountCalculatorTest {
     fun theDefaultRateIsSaneInTheUnitItIsDisplayedIn() {
         val shown = DistanceUnit.MILES.toDisplayRate(Settings().perMeterRate)
         assertEquals(1.75, shown, 0.005)
+    }
+
+    /**
+     * The same guard for the minimum speed, which has the same shape of
+     * trap: stored in meters per second, entered and shown in miles per
+     * hour, and a number that looks reasonable in one is nonsense in the
+     * other. The Settings screen converts with `distanceToUnit(…) * 3600`
+     * and this checks the same arithmetic.
+     */
+    @Test
+    fun theDefaultMinimumSpeedIsSaneInTheUnitItIsDisplayedIn() {
+        val shown =
+            distanceToUnit(Settings().minimumSpeedMps, DistanceUnit.MILES) * 3600
+
+        assertEquals(3.0, shown, 0.001)
     }
 
     /** A ten-mile, half-hour ride on the defaults, as a sanity check. */

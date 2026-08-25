@@ -34,7 +34,14 @@ data class Settings(
     val perMeterRate: Double = 0.0010874,
     val hourlyRate: Double = 15.00,
     val stoppedHourlyRate: Double = 15.00,
-    val minimumSpeedMps: Double = 0.0,
+    // 3 mph, in meters per second, entered and shown in the unit the
+    // user picked. A fix slower than this contributes no distance at
+    // all (GpsDistanceProvider), so the threshold has to sit below the
+    // slowest speed anyone actually drives at: 0.0 - the old default -
+    // let a parked phone's drift meter as distance, but anything up
+    // near traffic speed would silently drop real miles crawled in a
+    // car park or a jam. Walking pace splits the two.
+    val minimumSpeedMps: Double = 1.34112,
     // GPS, because a fresh install's first ride has to be a real one.
     // The simulator is still there, one tap away in Settings - it just
     // isn't what someone who installed a ride meter asked for.

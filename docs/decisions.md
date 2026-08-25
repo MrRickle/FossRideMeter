@@ -985,9 +985,13 @@ A taxi meter would use **speed**: seconds under some threshold bill as
 waiting time. It was rejected for two reasons. It bills against something
 the user never sees — nothing in this app displays "time below 2 mph" —
 so an amount could not be explained after the fact, which is the whole
-point of storing the rates on the ride. And `minimumSpeedMps` defaults to
-0, so it would have done nothing at all until someone set a threshold
-they'd never been asked for.
+point of storing the rates on the ride. And `minimumSpeedMps` defaulted to
+0 at the time, so it would have done nothing at all until someone set a
+threshold they'd never been asked for. (That default is 3 mph as of
+2026-08-25 — see "The Minimum Speed Defaults to 3 mph". It doesn't revive
+this option: the first objection was the deciding one, and time billed
+against a speed the app never displays is still time that can't be
+explained.)
 
 **Time inside any dwell** was rejected for the first of those reasons on
 its own: a dwell that never became a stop is recorded nowhere.
@@ -1172,3 +1176,40 @@ under GPL v3 section 7, and every source file's header points at it.
 The exception is deliberately narrow: it covers combining with the Play
 services client libraries and nothing else, and grants no rights in those
 libraries themselves.
+
+## Decision: The Minimum Speed Defaults to 3 mph
+
+`Settings.minimumSpeedMps` gates whether a GPS fix contributes distance
+at all: `GpsDistanceProvider` sees `speed >= minimumSpeedMps` and, when
+it doesn't hold, records the fix as the new previous position and adds
+nothing. It defaulted to **0**, which means every fix counted, including
+the ones a phone produces while sitting still. A parked vehicle drifts,
+and drift at zero threshold is distance on a ride nobody is driving —
+billed at the per-mile rate, on the default settings, for as long as the
+meter is running.
+
+The default is now **3 mph** (`1.34112` m/s, stored in SI like every
+other distance in the app and entered in the unit the user picked).
+
+The threshold is a floor on what counts as travelling, not a filter that
+scales anything, so the number has to sit below the slowest speed anyone
+genuinely drives at. 10 mph was tried first and rejected for that reason:
+it kills drift, but it also silently drops the real miles of a crawl
+through a car park or a jam, and a ride that quietly under-bills is the
+same class of error as one that quietly over-bills. Walking pace is the
+line — a phone sitting still does not sustain it, and a vehicle moving at
+all does.
+
+There is still a cost, and it is on the record: distance covered below
+3 mph bills its time and not its miles. It is small, it is bounded by how
+little ground is covered that slowly, and unlike drift it is visible on
+the ride and can be corrected by editing the amount.
+
+It changes nothing about stop detection, which works on the dwell anchor
+and positions rather than on speed — `GpsInfo.moving` feeds one label on
+the live screen and nothing else.
+
+`AmountCalculatorTest.theDefaultMinimumSpeedIsSaneInTheUnitItIsDisplayedIn`
+pins the displayed figure, for the same reason the per-mile rate is
+pinned: this is another value stored in one unit and read in another, and
+that is exactly how the default rate came to be $1,287.48 a mile.

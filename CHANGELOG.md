@@ -6,6 +6,14 @@ the shape of things may still change between minor versions.
 
 ## Unreleased
 
+### Changed
+
+- **The minimum speed defaults to 3 mph** instead of 0. Below that speed
+  a GPS fix adds no distance, so a parked phone's drift is no longer
+  metered as travel. The threshold sits at walking pace so that a crawl
+  through a car park or a jam still bills its miles. An install that has
+  already set its own minimum speed is unaffected.
+
 ### Added
 
 - A **Help** screen in the drawer: how to install, what each permission
