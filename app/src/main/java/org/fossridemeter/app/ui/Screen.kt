@@ -29,6 +29,7 @@ sealed class Screen(
     data object Settings : Screen("settings")
     data object Rides : Screen("rides")
     data object Places : Screen("places")
+    data object Help : Screen("help")
     data object About : Screen("about")
     data object Advanced : Screen("advanced")
     data object License : Screen("license")

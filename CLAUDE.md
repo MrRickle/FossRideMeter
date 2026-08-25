@@ -8,6 +8,8 @@ FossRideMeter is a GPL-3.0 Android app (Kotlin + Jetpack Compose, single `:app` 
 
 `docs/` (architecture.md, decisions.md, ui.md, roadmap.md) was rewritten against the current code on 2026-08-17 and matches it. `architecture.md` is the long-form version of this file; `decisions.md` records *why* (superseded decisions are kept and marked, not deleted); `ui.md` covers screens and terminology; `roadmap.md` tracks what's done and what's next. Keep them in sync when you change the corresponding code.
 
+`docs/quickstart.md` is the exception: it is user documentation, not developer documentation, and the build copies it into the app as `res/raw/help.md` for `HelpScreen` (see the UI section). The wording there is the user's — don't rewrite it to suit the code.
+
 ## Build & run
 
 Builds are normally driven from Android Studio (snap install, bundled JBR 21). From the CLI, `./gradlew` fails with `JAVA_HOME is set to an invalid directory: /usr/lib/jvm/java-17-openjdk-amd64` — there is no system JDK on this machine. Set `JAVA_HOME` to Android Studio's bundled JBR (under the snap's `android-studio/jbr`) before running Gradle from a shell.
@@ -115,6 +117,8 @@ Consecutive stops that resolved to the same place are shown as **one** stop ever
 `RideInfoSection` is **one** composable shared by the live screen and a saved ride's detail. Both map their own form of ride into `RideInfo` (`ui/RideInfo.kt`) first — don't add a second overload, that's how the two drifted apart before. Don't reach for `Ride.toRecord()` to unify them either: it throws on a ride with no id yet, and `RideRecord.endTime` is non-nullable, so a running ride would report an end time equal to its start time. A ride has no edit mode — its name and amount are edited by tapping their rows (`FieldEditDialog`), the same gesture that opens a place.
 
 `Screen.Advanced` / `AdvancedScreen` (raw `.db` file backup/restore via `DbBackupUtils`, the event-log viewer, the place-link repair, and the databases `SchemaRescue` set aside during an upgrade) is a normal drawer entry that **ships in release builds**, named **Advanced** because every item on it is something a user may need on a phone with no adb attached. It stays a drawer destination rather than a row in Settings because Settings is locked mid-ride and the event log is wanted exactly then. It is not the user-facing export feature — that is the JSON export. The name is a promise: **Restore** and **Repair place links** both confirm first, Restore is disabled mid-ride, and a restore is *staged*, never swapped in live (see below).
+
+`HelpScreen` (route `help`, above About in the drawer) renders `docs/quickstart.md`. The `copyQuickstart` task in `app/build.gradle.kts` copies that one file into a generated resource directory as `res/raw/help.md`, registered through `androidComponents.onVariants { … addGeneratedSourceDirectory(…) }` because AGP 9 rejects a `Provider` on a source set. There is exactly one copy of that text — repository, README link, and in-app screen are the same file. The screen's renderer handles headings, bullets, numbered steps and continuation lines and strips emphasis/code/link markup; it is not a markdown library and shouldn't grow into one.
 
 `util/EventLog.kt` mirrors the automatic-by-location events to a file in `filesDir` as well as logcat, because auto-start fires when the phone can't be attached to adb. Read/clear it from the Advanced screen. Add to it rather than adding `Log.d` calls when touching `PlaceWatcher` or the auto paths in `RideTrackingService`.
 

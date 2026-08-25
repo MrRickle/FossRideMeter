@@ -44,6 +44,51 @@ fun gitVersion(): String {
 // app can render it in whatever timezone the device is actually in.
 fun buildTimeEpochMillis(): Long = System.currentTimeMillis()
 
+// The Help screen reads docs/quickstart.md rather than a copy of it.
+//
+// User documentation wants to exist in three places at once: in the
+// repository, behind a link in the README, and in front of somebody who
+// has just been refused a permission and has no browser open. Three
+// copies is three chances to answer the same question differently, so
+// there is one file and the build carries it into the app.
+//
+// It lands in a generated resource directory rather than in src/main/res,
+// so nothing tempts anyone to edit the copy instead of the original.
+//
+// Registered through the variant API rather than as a plain Copy on a
+// source set: AGP 9 refuses a Provider there, because it can't tell
+// generated files from ones a person is meant to edit. This way the task
+// dependency is carried for us, and Studio knows the directory is
+// read-only.
+abstract class CopyQuickstart : DefaultTask() {
+
+    @get:InputFile
+    abstract val source: RegularFileProperty
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun copy() {
+        val raw = outputDir.get().asFile.resolve("raw").apply { mkdirs() }
+        source.get().asFile.copyTo(raw.resolve("help.md"), overwrite = true)
+    }
+}
+
+val copyQuickstart = tasks.register<CopyQuickstart>("copyQuickstart") {
+    description = "Copies docs/quickstart.md in as the Help screen's text."
+    source.set(rootProject.file("docs/quickstart.md"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.res?.addGeneratedSourceDirectory(
+            copyQuickstart,
+            CopyQuickstart::outputDir
+        )
+    }
+}
+
 android {
     namespace = "org.fossridemeter.app"
     compileSdk = 37
@@ -113,6 +158,7 @@ android {
         compose = true
         buildConfig = true
     }
+
 }
 
 // Where Room writes the exported schema JSON, one file per SCHEMA_VERSION.

@@ -4,7 +4,22 @@
       "Read(//home/rick/snap/android-studio/current/android-studio/**)",
       "Read(//home/rick/snap/**)",
       "Bash(python3 *)",
-      "Bash(./add_license_headers.sh)"
+      "Bash(./add_license_headers.sh)",
+      "Bash(grep -n \"AboutScreen.kt\\\\|ui/$\\\\|ui/\" docs/architecture.md)",
+      "Bash(grep -n \"location permission\\\\|ACCESS_FINE_LOCATION\\\\|return$\" app/src/main/java/org/fossridemeter/app/ui/navigation/AppNavigation.kt)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell pm grant org.fossridemeter.app android.permission.ACCESS_FINE_LOCATION)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell pm grant org.fossridemeter.app android.permission.ACCESS_COARSE_LOCATION)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell pm grant org.fossridemeter.app android.permission.POST_NOTIFICATIONS)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell am force-stop org.fossridemeter.app)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell monkey -p org.fossridemeter.app -c android.intent.category.LAUNCHER 1)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell input keyevent KEYCODE_HOME)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell am start -n org.fossridemeter.app/.MainActivity)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell appops set org.fossridemeter.app SYSTEM_ALERT_WINDOW allow)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 exec-out screencap -p)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell input tap 454 828)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell input tap 56 111)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell input tap 91 688)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell input swipe 360 1000 360 250 400)"
     ]
   }
 }

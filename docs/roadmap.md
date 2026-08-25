@@ -161,6 +161,15 @@ outside users yet.
   the app doesn't control. Export is the replacement, and the README and
   privacy policy both say a new phone won't restore rides by itself.
 
+### Help in the app
+
+* A **Help** drawer entry above About, rendering `docs/quickstart.md`.
+  The build copies that one file into `res/raw/help.md`, so the
+  repository copy, the README link, and the screen are the same text.
+* It answers the question a sideloaded install actually raises: a
+  permission toggle that will not turn on, because Android hides **Allow
+  restricted settings** behind a three-dot menu.
+
 ### Donations
 
 * PayPal, Venmo, Bitcoin, and Lightning on the About screen, each one a
@@ -185,12 +194,10 @@ outside users yet.
 
 Ordered by what hurts a first-time user most.
 
-* **Nothing has been pushed anywhere.** There is no git remote and no
-  tags — 255 commits, all local. The repository has to exist somewhere
-  before a release can be cut from it. History was checked before that
-  decision: no keystore, `keystore.properties`, `local.properties`, or
-  `logs/` was ever committed, and no real coordinates are in tracked
-  source.
+* **Published** to `github.com/MrRickle/FossRideMeter`, public, as a
+  single squashed commit — the 255 local commits stayed local by
+  choice. Push `main` only: `--all`, `--tags`, and `--mirror` would send
+  the history that was deliberately left behind.
 * **Cutting a release:** bump `versionCode` and `versionName`, move the
   changelog's Unreleased section under the new heading, tag `vX.Y.Z`, build
   `assembleRelease`, attach the APK under a name carrying its version,

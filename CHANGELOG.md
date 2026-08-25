@@ -4,6 +4,17 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
+## Unreleased
+
+### Added
+
+- A **Help** screen in the drawer: how to install, what each permission
+  is for, a first ride, and what to do when a permission toggle will not
+  turn on because Android has restricted settings for an app installed
+  from a file. It is the same text as
+  [`docs/quickstart.md`](docs/quickstart.md), copied into the app when it
+  builds rather than kept as a second copy.
+
 ## 0.1.1 — 2026-08-25
 
 ### Fixed

@@ -76,6 +76,11 @@ signed with a different key — including a debug build from Android
 Studio — and the only way past that is uninstalling, which deletes your
 rides. Export them first if you are about to try one.
 
+[`docs/quickstart.md`](docs/quickstart.md) walks through the install, the
+permissions, and a first ride — including what to do when a permission
+toggle will not turn on. It is the same text as the app's own **Help**
+screen, so you can read it before installing or after.
+
 On first run the app meters from real GPS. If you want to see how it
 behaves without driving anywhere, Settings → Distance Provider →
 Simulator plays back a scripted route.
@@ -104,6 +109,8 @@ run `./add_license_headers.sh` — it is idempotent.
 
 ## Documentation
 
+* [`docs/quickstart.md`](docs/quickstart.md) — using the app; the same
+  text the Help screen shows.
 * [`docs/architecture.md`](docs/architecture.md) — how the app is put
   together.
 * [`docs/decisions.md`](docs/decisions.md) — why it is put together that

@@ -84,6 +84,8 @@ org.fossridemeter.app
 │   ├── PlacesScreen.kt, PlacesViewModel.kt, PlaceEditDialog.kt /
 │   │   PlaceDeleteDialog.kt
 │   ├── SettingsScreen.kt
+│   ├── HelpScreen.kt            renders docs/quickstart.md, copied in
+│   │                            by the build as res/raw/help.md
 │   ├── AboutScreen.kt, LicenseScreen.kt
 │   ├── RideViewModel.kt         binds to RideTrackingService
 │   ├── KeepScreenOn.kt
@@ -120,8 +122,14 @@ quit/cancel dialogs.
 Screens are deliberately decomposed into small composables. Prefer adding
 another small file over growing a screen file.
 
-Routes (`ui/Screen.kt`): `ride`, `rides`, `places`, `settings`, `about`,
-`license`, `advanced`.
+Routes (`ui/Screen.kt`): `ride`, `rides`, `places`, `settings`, `help`,
+`about`, `license`, `advanced`.
+
+`help` renders `docs/quickstart.md`. The build copies that one file into
+`res/raw/help.md` (`copyQuickstart` in `app/build.gradle.kts`, registered
+through the variant API because AGP 9 will not take a `Provider` on a
+source set), so the repository copy, the README link, and the in-app
+screen are the same text and cannot answer a question three ways.
 
 The UI never talks to GPS or the database directly. It reads state from a
 ViewModel and sends commands back.

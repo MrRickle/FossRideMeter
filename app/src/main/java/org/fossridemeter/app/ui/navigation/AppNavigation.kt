@@ -93,6 +93,7 @@ import org.fossridemeter.app.ui.RideViewModel
 import org.fossridemeter.app.ui.RidesViewModel
 import org.fossridemeter.app.ui.Screen
 import org.fossridemeter.app.ui.FossRideMeter
+import org.fossridemeter.app.ui.HelpScreen
 import org.fossridemeter.app.ui.LicenseScreen
 import org.fossridemeter.app.ui.RidesScreen
 import org.fossridemeter.app.ui.PlacesScreen
@@ -135,6 +136,7 @@ private fun menuActionsFor(): List<MenuAction> {
         MenuAction("Rides", Screen.Rides.route) { it.navigate(Screen.Rides.route) },
         MenuAction("Places", Screen.Places.route) { it.navigate(Screen.Places.route) },
         MenuAction("Settings", Screen.Settings.route) { it.navigate(Screen.Settings.route) },
+        MenuAction("Help", Screen.Help.route) { it.navigate(Screen.Help.route) },
         MenuAction("About", Screen.About.route) { it.navigate(Screen.About.route) },
         MenuAction("License", Screen.License.route) { it.navigate(Screen.License.route) },
         MenuAction("Advanced", Screen.Advanced.route) { it.navigate(Screen.Advanced.route) }
@@ -360,6 +362,7 @@ private fun titleFor(route: String?): String = when (route) {
     Screen.Rides.route -> "Rides"
     Screen.Places.route -> "Places"
     Screen.Settings.route -> "Settings"
+    Screen.Help.route -> "Help"
     Screen.About.route -> "About"
     Screen.License.route -> "License"
     Screen.Advanced.route -> "Advanced"
@@ -967,6 +970,10 @@ fun AppNavigation() {
                         selectedIds = placesSelection,
                         onToggleSelection = { placesViewModel.selection.toggle(it) }
                     )
+                }
+
+                composable(Screen.Help.route) {
+                    HelpScreen()
                 }
 
                 composable(Screen.About.route) {

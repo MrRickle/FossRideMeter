@@ -30,6 +30,7 @@ currently makes and opening the system sound picker when tapped. "Built-in
 tone" is the default — a platform tone, not a file — and a **Built-in**
 button returns an action to it. The rows are hidden while the tones are
 switched off.
+| `help` | `HelpScreen` | The quick start, rendered from `docs/quickstart.md` |
 | `about` | `AboutScreen` | Version, git stamp, build time, donations |
 | `license` | `LicenseScreen` | Full GPL-3.0 text |
 | `advanced` | `AdvancedScreen` | Raw `.db` backup/restore, databases set aside by an upgrade, event log, place-link repair |
@@ -100,6 +101,28 @@ places in it" when the file parsed but held nothing. The empty case is
 the one worth reporting: picking the wrong file otherwise looks exactly
 like picking the right one. The message waits for the rows to actually be
 written, not just parsed.
+
+## HelpScreen
+
+The quick start, in the app, above About in the drawer.
+
+There is one copy of that text and it is `docs/quickstart.md`. The build
+copies it into `res/raw/help.md` (the `copyQuickstart` task in
+`app/build.gradle.kts`) and the screen reads it from there, so the
+repository, the README link, and the screen cannot drift apart. Edit the
+markdown, not the screen.
+
+The renderer handles headings, bullets, numbered steps, and wrapped
+continuation lines, and strips the emphasis, code, and link markup that
+would otherwise be read as punctuation — a link becomes its text followed
+by its target, since there is nothing here to tap. It is deliberately not
+a markdown library: a document that needs more than this is too elaborate
+for something read while standing next to a car.
+
+It exists because the README is no use to the person who most needs it —
+someone who has just sideloaded the APK, been refused a permission by a
+toggle that looks like it works, and has no way to know Android hides
+**Allow restricted settings** behind a three-dot menu.
 
 ## AboutScreen
 
