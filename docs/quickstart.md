@@ -39,12 +39,11 @@ the floating amount bubble can work.
   looking for you leaving a place, and a start is missed.
 * **Background location** — only asked for when you first set a place to
   start or save a ride on its own. Without it the app cannot see you
-  leave while it is in the background, which is the whole feature.
+  leave while it is in the background.
 
 ## Your first ride
 
-1. Open Settings and set your rates. The per-distance rate is entered in
-   the unit shown — per mile, or per kilometre if you choose SI.
+1. Open Settings and set your rates.
 2. Go back to the meter and press **START**.
 3. Live distance, time, amount start showing.
 4. Press **SAVE**, & confirm to end your ride.
@@ -61,7 +60,7 @@ the floating amount bubble can work.
 * **Per hour stopped** — calculated from time while stopped.
 * **Base amount** — added to every ride.
 * **Minimum amount** — The amount until the calculated amount is greater.  
-* Saved rides keep the rates they were metered at.
+* Saved rides keep the rates they were created with.
 
 ## Places
 
@@ -88,7 +87,7 @@ Everything stays on your phone. Nothing is uploaded, and Android's own
 backup is switched off, so
 **rides will not be restored automatically.**
 
-Export them yourself: on both the Rides and Places screens, tap the three dots, then
+Export them yourself: In both the Rides and Places screens, tap the three dots, then
 **Export**.  Both write a JSON file wherever you point them, and Import reads them back.
 
 Uninstalling the app deletes everything it holds, including the database
