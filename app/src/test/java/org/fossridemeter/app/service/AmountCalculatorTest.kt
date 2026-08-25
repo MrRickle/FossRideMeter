@@ -22,8 +22,10 @@
  */
 package org.fossridemeter.app.service
 
+import org.fossridemeter.app.model.DistanceUnit
 import org.fossridemeter.app.model.Ride
 import org.fossridemeter.app.model.Settings
+import org.fossridemeter.app.util.toDisplayRate
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -109,6 +111,33 @@ class AmountCalculatorTest {
         )
         assertEquals(5.0, result.distanceAmount, 0.0001)
         assertEquals(3.0 + 5.0 + 2.0, result.totalAmount, 0.0001)
+    }
+
+    /**
+     * The defaults a fresh install starts on, checked through the same
+     * conversion the Settings screen uses.
+     *
+     * perMeterRate is stored per *meter* and shown per mile, and the two
+     * drifted badly: 0.80 looked like eighty cents a mile and meant
+     * $1,287.48 a mile on every new install. Nothing caught it, because
+     * nothing anywhere asserted what the default looks like to the person
+     * reading it.
+     */
+    @Test
+    fun theDefaultRateIsSaneInTheUnitItIsDisplayedIn() {
+        val shown = DistanceUnit.MILES.toDisplayRate(Settings().perMeterRate)
+        assertEquals(1.75, shown, 0.005)
+    }
+
+    /** A ten-mile, half-hour ride on the defaults, as a sanity check. */
+    @Test
+    fun aTypicalRideOnTheDefaultsCostsATypicalAmount() {
+        val defaults = Settings()
+        val result = AmountCalculator.calculate(
+            ride(meters = 16093.44, seconds = 1800),
+            defaults
+        )
+        assertEquals(17.50 + 7.50, result.totalAmount, 0.05)
     }
 
     @Test

@@ -4,6 +4,20 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
+## Unreleased
+
+### Fixed
+
+- **The default per-distance rate was $1,287.48 per mile.** Rates are
+  stored per meter and shown per mile, and the default read `0.80` — which
+  looks like eighty cents a mile and is not. A fresh install now starts at
+  **$1.75 per mile**. An install that has already set its own rate is
+  unaffected, and so is every ride already recorded, since a ride stores
+  the rates it was metered at.
+- Settings fall back to the values on `Settings()` itself rather than to
+  literals repeated in `SettingsRepository`, so the two can no longer
+  disagree about what a default is.
+
 ## 0.1.0 — 2026-08-25
 
 First release. Everything below is new, so this entry describes what the

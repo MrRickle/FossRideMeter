@@ -68,50 +68,60 @@ class SettingsRepository(
         val cancelSoundUri = stringPreferencesKey("cancel_sound_uri")
     }
 
+    /**
+     * What an absent preference falls back to.
+     *
+     * Taken from `Settings()` rather than repeated as literals, because
+     * these have to agree with it and there is no way to notice when they
+     * stop: a fresh install reads the data class, and an install whose
+     * preferences predate a key reads this. They were the same wrong
+     * number for a long time.
+     */
+    private val defaults = Settings()
+
     val settings: Flow<Settings> =
         context.dataStore.data.map { preferences ->
             Settings(
                 perMeterRate =
-                    preferences[Keys.perMeterRate] ?: 0.80,
+                    preferences[Keys.perMeterRate] ?: defaults.perMeterRate,
                 hourlyRate =
-                    preferences[Keys.hourlyRate] ?: 15.00,
+                    preferences[Keys.hourlyRate] ?: defaults.hourlyRate,
                 stoppedHourlyRate =
-                    preferences[Keys.stoppedHourlyRate] ?: 15.00,
+                    preferences[Keys.stoppedHourlyRate] ?: defaults.stoppedHourlyRate,
                 distanceProvider =
                     DistanceProviderType.valueOf(
-                        // Must match Settings() - see the note there.
                         preferences[Keys.distanceProvider]
-                            ?: DistanceProviderType.GPS.name
+                            ?: defaults.distanceProvider.name
                     ),
                 distanceUnit =
                     DistanceUnit.valueOf(
                         preferences[Keys.distanceUnit]
-                            ?: DistanceUnit.MILES.name
+                            ?: defaults.distanceUnit.name
                     ),
                 minimumSpeedMps =
-                    (preferences[Keys.minimumSpeedMps] ?: 0.0),
+                    (preferences[Keys.minimumSpeedMps] ?: defaults.minimumSpeedMps),
                 measurementSystem =
                     MeasurementSystem.valueOf(
                         preferences[Keys.measurementSystem]
-                            ?: MeasurementSystem.US.name
+                            ?: defaults.measurementSystem.name
                     ),
                 baseAmount =
-                    preferences[Keys.baseAmount] ?: 0.0,
+                    preferences[Keys.baseAmount] ?: defaults.baseAmount,
                 minimumAmount =
-                    preferences[Keys.minimumAmount] ?: 0.0,
+                    preferences[Keys.minimumAmount] ?: defaults.minimumAmount,
                 stopDetectionMinutes =
-                    preferences[Keys.stopDetectionMinutes] ?: 5,
+                    preferences[Keys.stopDetectionMinutes] ?: defaults.stopDetectionMinutes,
                 autoWatchSeconds =
-                    preferences[Keys.autoWatchSeconds] ?: 60,
+                    preferences[Keys.autoWatchSeconds] ?: defaults.autoWatchSeconds,
                 autoSaveGraceMinutes =
-                    preferences[Keys.autoSaveGraceMinutes] ?: 5,
+                    preferences[Keys.autoSaveGraceMinutes] ?: defaults.autoSaveGraceMinutes,
                 autoWatchAccuracy =
                     WatchAccuracy.valueOf(
                         preferences[Keys.autoWatchAccuracy]
-                            ?: WatchAccuracy.GPS.name
+                            ?: defaults.autoWatchAccuracy.name
                     ),
                 soundEnabled =
-                    preferences[Keys.soundEnabled] ?: true,
+                    preferences[Keys.soundEnabled] ?: defaults.soundEnabled,
                 // Absent means the built-in tone, so these stay null
                 // rather than defaulting to anything.
                 startSoundUri = preferences[Keys.startSoundUri],

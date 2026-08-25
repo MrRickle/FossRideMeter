@@ -24,7 +24,14 @@ package org.fossridemeter.app.model
 
 
 data class Settings(
-    val perMeterRate: Double = 0.80,
+    // $1.75 per mile, which is what this has to be written as once it is
+    // per *meter*: 1.75 / 1609.344. Rates are stored in SI and converted
+    // only for display, so the number here is never the number the user
+    // sees - and that is exactly how it went wrong. It read 0.80, looked
+    // like eighty cents a mile, and meant $1,287.48 a mile on every fresh
+    // install. AmountCalculatorTest pins the displayed figure so the two
+    // can't drift apart again.
+    val perMeterRate: Double = 0.0010874,
     val hourlyRate: Double = 15.00,
     val stoppedHourlyRate: Double = 15.00,
     val minimumSpeedMps: Double = 0.0,
