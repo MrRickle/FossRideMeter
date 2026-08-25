@@ -9,7 +9,7 @@ rides anywhere, because it cannot open a connection at all. Everything
 below is detail on that, plus the three ways data can leave the device
 when you or the operating system move it.
 
-This document describes version 0.1.0 and is written from the source. If
+This document describes version 0.1.1 and is written from the source. If
 it disagrees with the code, the code is what runs — please open an issue.
 
 ## The app does not have internet access

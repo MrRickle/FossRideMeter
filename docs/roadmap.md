@@ -1,6 +1,6 @@
 # FossRideMeter Roadmap
 
-Status as of the current `main`. Version `0.1.0` — pre-release, no
+Status as of the current `main`. Version `0.1.1` — pre-release, no
 outside users yet.
 
 ## Done
@@ -136,7 +136,7 @@ outside users yet.
 
 ### Ready to publish
 
-* Version `0.1.0`, signed release build verified against the release key.
+* Version `0.1.1`, signed release build verified against the release key.
 * `CHANGELOG.md`, and an Installing section in the README covering
   sideloading, the signing-key rule, and what a fresh install meters.
 * A fresh install meters real GPS; the simulator is a Settings away.
@@ -191,7 +191,8 @@ Ordered by what hurts a first-time user most.
   decision: no keystore, `keystore.properties`, `local.properties`, or
   `logs/` was ever committed, and no real coordinates are in tracked
   source.
-* **Cutting the release itself:** tag `v0.1.0`, build
+* **Cutting a release:** bump `versionCode` and `versionName`, move the
+  changelog's Unreleased section under the new heading, tag `vX.Y.Z`, build
   `assembleRelease`, attach the APK under a name carrying its version,
   and keep that build's `mapping.txt` — without it a stack trace from a
   shrunk build can't be read.

@@ -14,7 +14,7 @@ switched off too, so ride history is not copied to a cloud backup — which
 means a new phone does not get your rides back by itself; export them
 first. See [PRIVACY.md](PRIVACY.md) for what is stored where.
 
-**Status: pre-release (`0.1.0`).** Upgrades now migrate the database
+**Status: pre-release (`0.1.1`).** Upgrades now migrate the database
 rather than rebuilding it, and every upgrade sets a complete copy of the
 old database aside first. It is still pre-release: back up what you'd
 mind losing, using the JSON export.

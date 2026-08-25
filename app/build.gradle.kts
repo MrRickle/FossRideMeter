@@ -63,10 +63,11 @@ android {
         applicationId = "org.fossridemeter.app"
         minSdk = 26
         targetSdk = 37
-        // versionCode has to increase on every published build; nothing
-        // has been published under 1 yet, so the first release keeps it.
-        versionCode = 1
-        versionName = "0.1.0"
+        // versionCode has to increase on every published build - Android
+        // refuses an install whose code is not higher than the one on the
+        // phone. 1 was 0.1.0.
+        versionCode = 2
+        versionName = "0.1.1"
 
         buildConfigField(
             "String",

@@ -709,7 +709,7 @@ The About screen displays the release version, a git identifier, and the
 UTC build time:
 
 ```
-0.1.0+6354923-dirty
+0.1.1+6354923-dirty
 ```
 
 The `-dirty` suffix marks a build made from an uncommitted tree. This

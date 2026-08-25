@@ -856,7 +856,7 @@ import whose places haven't been imported yet.
 
 ## Build information
 
-`versionName` is `0.1.0`. `compileSdk` / `targetSdk` 37, `minSdk` 26,
+`versionName` is `0.1.1`. `compileSdk` / `targetSdk` 37, `minSdk` 26,
 JVM toolchain 17.
 
 Release builds run R8 — code shrinking, resource shrinking, and
@@ -891,7 +891,7 @@ back to a commit. `AppVersion.buildTime` formats that instant in the
 device's current timezone, so the About screen reads as local time:
 
 ```
-0.1.0+6354923-dirty
+0.1.1+6354923-dirty
 ```
 
 Because these run `git` during configuration, changing the tree's dirty
