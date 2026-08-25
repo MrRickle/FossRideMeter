@@ -18,13 +18,13 @@ from a store. The toggle looks normal and does nothing.
 
 To unblock it:
 
-1. Open Settings, then Apps, then FossRideMeter.
+1. Open Settings, Apps, FossRideMeter.
 2. Tap the three dots in the top right corner.
 3. Choose "Allow restricted settings".
 4. Go back and set the permission again.
 
-This is what stops **Display over other apps** from turning on, which is
-the permission the floating amount bubble needs.
+This will allow **Display over other apps** to be turned on so 
+the floating amount bubble can work.
 
 ## What each permission is for
 
@@ -46,13 +46,13 @@ the permission the floating amount bubble needs.
 1. Open Settings and set your rates. The per-distance rate is entered in
    the unit shown — per mile, or per kilometre if you choose SI.
 2. Go back to the meter and press **START**.
-3. Distance, time, and the amount are then calculated live.
-4. Press **SAVE** when your ride is over, and confirm.
+3. Live distance, time, amount start showing.
+4. Press **SAVE**, & confirm to end your ride.
 
-**PAUSE** stops the meter without ending the ride. 
-**CANCEL** throws the ride away. 
-**ADD STOP** manually records a stop, 
-a stop is auto recorded when stopped for the stop time set in settings.   
+* **PAUSE** stops the meter without ending the ride.
+* **CANCEL** throws the ride away.
+* **ADD STOP** manually records a stop.
+* Settings has a stop detection time setting, a stop is added after that many minutes not moving.   
 
 ## Rates
 
@@ -60,41 +60,39 @@ a stop is auto recorded when stopped for the stop time set in settings.
 * **Per hour** — calculated from time while moving.
 * **Per hour stopped** — calculated from time while stopped.
 * **Base amount** — added to every ride.
-* **Minimum amount** — shown while calculated amount is less than this.  
-
-Saved rides keep the rates they were metered at.
+* **Minimum amount** — The amount until the calculated amount is greater.  
+* Saved rides keep the rates they were metered at.
 
 ## Places
 
-A place is where a ride starts, ends, or stops. The app names them
-with a geohash location (like `dp3wjy6n`) until you rename it.
-Open **Places**, tap one, and give it a name. Renaming a place renames it
+* A place is where a ride starts, ends, or stops. 
+* The app names them with a geohash location (like `dp3wjy6n`) until you rename it.
+* Open **Places**, tap one, and give it a name. Renaming a place renames it
 wherever it has been used.
-The location may be copied and pasted into your maps app to see where it is.
-You may also paste a location from your maps app into a place. The radius
-determines what locations in rides and stops this place includes.  
-'Advanced', 'Repair place links' fixes links if needed.  
+* The location may be copied and pasted into your maps app to see where it is.
+* You may also paste a location from your maps app into a place. The radius
+determines what locations in rides and ride stops this place includes.  
+* 'Advanced', 'Repair place links' fixes links if needed.  
 
 Two switches in the place editor make rides happen on their own:
 * **Auto-start when leaving** — driving out of this place starts a ride.
-* **Auto-save when arriving** — arriving here pauses the ride and saves
-  it a few minutes later, unless you resume first.
+* **Auto-save when arriving** — arriving here pauses the ride and saves 
+it a few minutes later, unless you resume first.
 
-Setting either switch on for any place is what turns watching on, 
-and clearing them for every place is what turns it off.
+* Setting either switch on for any place turns watching on, 
+* Clearing both switches for every place turns watching off.
 
 ## Backing up
 
 Everything stays on your phone. Nothing is uploaded, and Android's own
 backup is switched off, so
-**rides will not be restored automatically.**
+## rides will not be restored automatically.
 
-Export them yourself: on the Rides screen, tap the three dots, then
-**Export**. Do the same on Places. Both write a JSON file wherever you
-point them, and Import reads them back.
+Export them yourself: on both the Rides and Places screens, tap the three dots, then
+**Export**.  Both write a JSON file wherever you point them, and Import reads them back.
 
 Uninstalling the app deletes everything it holds, including the database
-backup on the Advanced screen. Export before you uninstall.
+backup on the Advanced screen. **Export** before you uninstall.
 
 ## Something wrong?
 
