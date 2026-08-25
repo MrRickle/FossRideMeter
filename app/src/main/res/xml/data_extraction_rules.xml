@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    API 31+ rules, for cloud backup and device-to-device transfer
+    separately. Both exclude everything: rides.db holds coordinates, the
+    event log holds coordinates, and the manual backup in external files
+    is a copy of the whole database.
+
+    Moot while android:allowBackup is false - kept explicit so that
+    flipping that flag doesn't start shipping ride history by default,
+    and because D2D transfer is governed here rather than by that flag.
+    See the note in AndroidManifest.xml.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

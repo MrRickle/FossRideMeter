@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!--
+      Needed only by the automatic-by-location feature. A location
+      foreground service started while the app is in the background - which
+      is what BootReceiver does - receives no fixes at all without it.
+      Requested lazily, when a place is first flagged, not at launch.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!--
+        The place watcher polls on an alarm rather than a timer, because a
+        timer does not wake a sleeping phone - see PlaceWatcher. WAKE_LOCK
+        keeps the CPU up for the few seconds a sweep takes; the exact
+        alarm is what keeps the interval honest in Doze, and degrades to
+        an inexact one if the user hasn't granted it.
+    -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-feature    android:name="android.hardware.location.gps"
+                     android:required="false" />
+    <!--
+        Backup is off, and this is a privacy decision rather than a
+        technical one. Auto Backup would copy rides.db - every ride, with
+        its coordinates - into the user's cloud backup, which on a phone
+        with Play services means their Google account. The app has no
+        INTERNET permission precisely so that driving history cannot
+        leave the device; handing it to the system to upload instead
+        would be the same outcome by another route.
+
+        The two rules files below exclude everything explicitly, for both
+        cloud backup and device-to-device transfer. With allowBackup off
+        they do nothing - they are there so that turning it back on
+        cannot quietly start shipping ride history. See PRIVACY.md.
+
+        What replaces it: Export (JSON, through the file picker) and the
+        Advanced screen's database backup, both of which the user aims
+        somewhere deliberately.
+    -->
+    <application
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.FossRideMeter">
+        <service
+            android:name=".service.RideTrackingService"
+            android:foregroundServiceType="location"
+            android:exported="false">
+        </service>
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <!--
+            Hears the ongoing notification being swiped away, so the
+            event log can say so. Not exported: nothing outside this app
+            has any business firing it.
+        -->
+        <receiver
+            android:name=".service.NotificationDismissedReceiver"
+            android:exported="false" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.FossRideMeter"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+
+</manifest>

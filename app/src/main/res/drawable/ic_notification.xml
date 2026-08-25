@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Notification small icon: the app mark, as line art.
+
+    Not the launcher icon. Since Android 5 the small icon is alpha-only -
+    the system discards its colours and tints the silhouette - so a
+    full-colour mipmap renders as a solid white blob. This is the same
+    drawing (artwork/icon.svg), kept as strokes so the alpha channel is
+    the line work itself.
+
+    Paths are the two visible ones from icon.svg, carrying that file's
+    combined group translation (13.906102 + 1.6866663, 66.354946 -
+    45.872474). Scaled slightly about the centre so the mark doesn't run
+    to the very edge of the 24dp box the status bar gives it.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="212"
+    android:viewportHeight="212">
+
+    <group
+        android:pivotX="106"
+        android:pivotY="106"
+        android:scaleX="0.86"
+        android:scaleY="0.86">
+
+        <group
+            android:translateX="15.592768"
+            android:translateY="20.482472">
+
+            <path
+                android:fillColor="#00000000"
+                android:strokeColor="#FFFFFFFF"
+                android:strokeWidth="15"
+                android:pathData="m 41.008511,35.348252 c -0.260284,-20.324799 11.660263,-48.413136 49.496148,-48.413136 38.575621,0 49.756441,28.088337 49.496181,48.413136 l -0.0834,25.924869 -0.15642,48.644569 m -0.0804,24.99238 c 0.25904,21.10154 -10.92178,49.18987 -49.497401,49.18987 h 0 c -37.835881,0 -49.756428,-28.08833 -49.364781,-49.18987 l 0.04869,-25.51386 0.09184,-48.123333 m 24.771115,0 -0.08428,47.861706 -0.04539,25.77515 c -0.276001,14.07019 10.846117,24.3877 24.565944,24.3877 13.71983,0 24.84194,-10.3175 24.79307,-24.3877 m 0.061,-25.25294 0.11678,-48.383254 0.0625,-25.925624 c 0.12994,-13.56129 -10.99217,-23.610949 -24.711998,-23.610949 -13.719831,0 -24.841949,10.049659 -24.711996,23.610949" />
+
+            <path
+                android:fillColor="#00000000"
+                android:strokeColor="#FFFFFFFF"
+                android:strokeWidth="15"
+                android:pathData="m 41.014693,134.79096 c -21.10155,0.25906 -49.1898795,-10.92176 -49.1898795,-49.49738 0,-37.835882 28.0883295,-49.756432 49.1898795,-49.364782 l 24.784739,0.0473 49.468818,0.09441 m 25.30826,0.0483 c 20.3248,-0.26028 48.41314,11.66027 48.41314,49.496152 0,38.57562 -28.55067,49.75644 -48.87547,49.49618 l -25.30734,-0.0829 -49.28403,-0.15848 m 0.184404,-24.74038 49.283066,0.11895 25.03144,0.0618 c 13.56129,0.12994 24.16574,-10.992173 24.16574,-24.712 0,-13.719831 -10.04966,-24.841949 -23.61095,-24.711996 m -25.30773,-0.04457 -49.469348,-0.08711 -24.784739,-0.04365 c -14.07019,-0.276001 -24.38771,10.846117 -24.38771,24.565944 0,13.719827 10.31751,24.841942 24.38771,24.793072" />
+        </group>
+    </group>
+</vector>

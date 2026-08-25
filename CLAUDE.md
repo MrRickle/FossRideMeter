@@ -1,0 +1,121 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project
+
+FossRideMeter is a GPL-3.0 Android app (Kotlin + Jetpack Compose, single `:app` module) that meters rides: it tracks distance and time via GPS, computes a fare-style amount, and stores completed rides, the places they start/end at, and the stops made along the way.
+
+`docs/` (architecture.md, decisions.md, ui.md, roadmap.md) was rewritten against the current code on 2026-08-17 and matches it. `architecture.md` is the long-form version of this file; `decisions.md` records *why* (superseded decisions are kept and marked, not deleted); `ui.md` covers screens and terminology; `roadmap.md` tracks what's done and what's next. Keep them in sync when you change the corresponding code.
+
+## Build & run
+
+Builds are normally driven from Android Studio (snap install, bundled JBR 21). From the CLI, `./gradlew` fails with `JAVA_HOME is set to an invalid directory: /usr/lib/jvm/java-17-openjdk-amd64` — there is no system JDK on this machine. Set `JAVA_HOME` to Android Studio's bundled JBR (under the snap's `android-studio/jbr`) before running Gradle from a shell.
+
+```bash
+./gradlew assembleDebug            # build debug APK
+./gradlew installDebug             # build + install on connected device/emulator
+./gradlew lint                     # Android lint
+./gradlew test                     # JVM unit tests
+./gradlew connectedAndroidTest     # instrumented tests (device required)
+./gradlew testDebugUnitTest --tests "org.fossridemeter.app.SomeTest"   # single test
+```
+
+Tests cover the schema and nothing else: `MigrationConfigTest` (JVM — every version from the baseline up has a migration, and `rebuiltFromScratch()` is right on both boundaries), `MigrationTest` and `SchemaRescueTest` (instrumented, device required). New JVM tests go under `app/src/test/java/org/fossridemeter/app/`; the older `org/fossRideMeter/app/` directory (note the non-matching package casing) is empty.
+
+`compileSdk`/`targetSdk` 37, `minSdk` 26, JVM toolchain 17. Release signing reads `keystore.properties` (gitignored) if present; both it and `local.properties` are local-only.
+
+Release builds are **minified** (R8 + resource shrinking, 14.1 MB → 1.9 MB). `app/proguard-rules.pro` only keeps what the libraries' own consumer rules don't: enum constant names under `org.fossridemeter.app.model`, because those are persisted by `.name` in DataStore, in a Room column via `Converters`, and in exported JSON — renaming one is a data format change that crashes an existing install at launch. Keep `app/build/outputs/mapping/release/mapping.txt` for any build handed to anyone.
+
+`versionName` is `0.1.0`; `BuildConfig.GIT_VERSION` (short hash, `-dirty` suffix when the tree is dirty) and `BuildConfig.BUILD_TIME` (epoch millis, rendered in the device's local timezone by `AppVersion.buildTime`) are stamped at configure time and shown on the About screen so an installed build traces back to a commit. Because these run `git` during configuration, changing the working tree's dirty state invalidates the configuration cache.
+
+Every `.kt` file carries the GPL SPDX header from `license-header.txt`. `./add_license_headers.sh` adds it to any file missing one (idempotent) — run it after adding new source files.
+
+## Architecture
+
+### Ride tracking lives in a foreground service, not a ViewModel
+
+`RideTrackingService` (foreground, `location` type, declared in the manifest) owns a `RideMeter` instance and outlives the Activity, so tracking survives backgrounding. `RideViewModel` binds to it via `LocalBinder`, mirrors the service's `ride` / `gpsInfo` StateFlows into its own, and forwards every command (`start`/`pause`/`resume`/`save`/`cancel`/`quit`). `requireService()` throws if called before the bind completes — UI must call `startServiceIfNeeded()` first.
+
+The service also owns the draggable floating "bubble" overlay (`TYPE_APPLICATION_OVERLAY`, needs `SYSTEM_ALERT_WINDOW`) shown while the app is backgrounded mid-ride, and the ongoing notification. Those are plain Android Views, not Compose.
+
+`RideMeter` (`service/RideMeter.kt`) is the actual state machine and the densest file in the repo — its comments document the stop-detection and place-resolution reasoning; read them before touching that logic.
+
+### Ride lifecycle and persistence
+
+The database row exists for the whole ride, not just at the end:
+
+There are exactly three statuses — `READY`, `RUNNING`, `PAUSED`. There is deliberately no `FINISHED`: everything is written as it happens, so a paused ride is already complete and `save()` is the only commit point. See "Why there is no FINISHED state" in `docs/architecture.md` before reintroducing one.
+
+1. `start()` — inserts a `RideRecord` immediately (`saveRide`), then re-writes it every 5s (`PERSIST_INTERVAL`) so a crash mid-ride loses at most 5 seconds. It also names the ride `MM/dd <start place> ->` unless the user already typed one; `save()` completes that name with the end place, and any edit the user makes takes it over for good.
+2. First GPS fix — sets `startLocation` and resolves `startPlaceId` right away so the live screen can show the start place.
+3. Each stop — detected, or added by the user with ADD STOP — writes its `Stop` row, adopts its place as the ride's *working* end place, and recomputes that place's average, all at the moment it is recorded.
+4. `pause()` — stops tracking and provisionally ends the ride here (end location + end time), but deliberately does **not** resolve a `Place`: `resolvePlace()` creates rows, and a pause may yet resume. `resume()` clears the end time and continues; the providers were never reset.
+5. `save()` — the single commit point, confirmed by the user first. Resolves the real end place, retracts a trailing stop matching it, completes an automatic name with the end place, writes the row, recomputes every touched place, tears down the providers, clears the live window. Writes from `activeSettings` (captured at `start()`), never live settings.
+6. `cancel()` — deletes the row outright, at any status; stops cascade with it, then every place that lost a point is recomputed.
+7. `restore()` — at service create, picks up a ride the *previous* process was metering. `LiveRideStore` (SharedPreferences) holds the live ride's id outside the process, so a marked row at startup is an interrupted ride, not a finished one; it comes back **PAUSED** because nothing recorded what happened during the gap. `priorMeters`/`priorSeconds` carry what it did before, since the providers count from zero and none survived. See "An Interrupted Ride Comes Back Paused" in `docs/decisions.md`.
+
+Stop detection uses a **fixed** dwell anchor (30 m radius): while fixes stay within the radius the dwell clock keeps accumulating without moving the anchor, so slow GPS drift can't reset it. A dwell that met `Settings.stopDetectionMinutes` is finalized as a `Stop` when movement resumes. `addStop()` (the live screen's ADD STOP button, RUNNING or PAUSED) writes that same dwell early, leaving the anchor alone; `dwellStop` holds the row so the dwell can't also be recorded when it ends — one dwell is at most one `Stop`, and the row gets the real departure time then.
+
+### Distance providers are swappable
+
+`DistanceProvider` (flows of `distance` + `gpsInfo`) has two implementations selected by `Settings.distanceProvider`: `GpsDistanceProvider` (fused location; `minimumSpeedMps` gates whether movement counts; accuracy buckets into `DistanceStatus.GOOD/POOR/WAITING`) and `SimulatedDistanceProvider` (a scripted timeline of legs so the whole UI can be exercised with no GPS hardware — selectable in Settings; a fresh install defaults to **GPS**, and `Settings()` and the `SettingsRepository` fallback must agree on that). `TimeProvider`/`SystemTimeProvider` is the same pattern for elapsed time. `RideMeter` receives a `(Settings) -> DistanceProvider` factory, so nothing in the meter knows which is in use.
+
+### Data layer
+
+Room (`AppDatabase`, `rides.db`, currently `SCHEMA_VERSION` 7) with three entities — `RideRecord`, `Place`, `Stop` — plus KSP for the compiler and `Converters` for `RideLocation`. `AppDatabase.clearInstance()` drops the cached instance so the next `getInstance()` opens a fresh connection.
+
+**Restoring a backup is staged, not live.** `PendingRestore.stage()` copies the backup aside; `PendingRestore.apply()` runs at the top of `AppDatabase.build()`, before Room opens anything, swaps it in, deletes the stale `-wal`/`-shm`, and clears `LiveRideStore` (its ride id belongs to the replaced file). Swapping the file under a running process is what this used to do and it doesn't work — closing Room's instance leaves `AppRepository` handing out DAOs built on the closed handle and every screen collecting dead Flows, which the user sees as deletes that don't take and an empty rides list. `AppRestart.restart()` ends the process and asks the system to reopen the app, but correctness doesn't depend on that: the restore lands at the start of whichever process opens the database next, exactly once.
+
+Migrations are **real** from version 6 on. `data/Migrations.kt` holds `MIGRATION_BASELINE` (6 — the oldest version with an exported schema), the `MIGRATIONS` list, and `rebuiltFromScratch()`. Room gets those plus `fallbackToDestructiveMigrationFrom(dropAllTables = true, 1…5)` and `fallbackToDestructiveMigrationOnDowngrade`, so a version at or above the baseline with **no migration written for it throws on open** instead of dropping the tables. Changing an entity means: bump `SCHEMA_VERSION`, add the `Migration`, and commit the regenerated `app/schemas/…/<version>.json` in the same commit — the schema JSON is committed, and `MigrationConfigTest` fails `./gradlew test` if the migration is missing. Don't lower the baseline to make an old database open.
+
+Two upgrades still can't be migrated and are rebuilt from scratch: a database below the baseline, and a downgrade. `SchemaRescue` covers those — it copies the database file to `filesDir/pre-upgrade` **before** Room opens it (on every version change, migrated or not — a migration can be wrong), and copies every row back into the rebuilt tables for the columns both schemas share (places, then rides, then stops). The carry-forward is gated on `rebuiltFromScratch()`: after a real migration the rows are already across, and copying them again duplicates every one or fails on every id. It is best-effort — a **renamed** column reads as one dropped plus one added and its data lands in neither, and a `NOT NULL` column added with no default loses the whole table (`SchemaRescueTest` pins that down). The set-aside file is the backstop and is shareable from the Advanced screen. Don't switch the insert to `INSERT OR IGNORE` or count successful calls instead of querying the destination; both were wrong first time and both produce a report that claims rows it didn't write. See "Real Migrations From Version 6" and "The database is still set aside before every upgrade" in `docs/decisions.md`.
+
+`AppRepository` is a hand-rolled singleton container (no DI framework) handing out the DAOs and the place helpers. Ride reads/writes during tracking go through the `RideRepository` interface (`RoomRideRepository`); the raw `RideDao` is only used for bulk export/import.
+
+Settings live in DataStore Preferences (`SettingsRepository`), exposed as a `Flow<Settings>` with defaults matching `Settings()`.
+
+### Places
+
+A place is a location a ride can start/end at or stop within, and the model has three flags that are easy to conflate:
+
+- Matching is **only** `distance <= place.radiusMeters` — the same rule for named and unnamed places (`PlaceResolver`). A geohash is used solely as the readable placeholder name when a new place is auto-created; it plays no part in matching. Where several overlapping places match one point, a named place wins, then the tighter radius, then the nearer centre — a tie-break, not a second rule.
+- `isNamed` is display-only. `locationLocked` (set only by directly editing coordinates, *not* by naming) is what stops `PlaceLocationRecalculator` from averaging.
+- `PlaceLocationRecalculator` recomputes a place's coordinates as the average of every linked ride point and stop, from scratch each call, *after* the rows are in the database.
+- `PlaceBoundaryEnforcer.enforceBoundary()` runs after **any** place save (edit or create) and is three steps in order: points linked here that now fall *outside* are re-resolved away; points anywhere that now fall *inside* are re-resolved, which is what makes a place drawn later apply to history (widening "Home Depot" claims the stops already recorded in it, and a tighter "Home Depot Windows" drawn inside takes back what it covers); then unnamed placeholders inside it that step 2 emptied are deleted. Only unnamed places are ever deleted — saving through the editor always sets `isNamed`, so unnamed means "no user has ever touched it". `reattachDeleted()` runs after places are deleted and does the same for every ride point and stop that pointed at one of them, so a deleted place is replaced by a geohash placeholder rather than a dangling id. Either way, every place that gained or lost points is recomputed. The sweep-everything variant, `reattachOrphans()`, is a debug-menu action only — an imported ride whose places haven't been imported yet dangles the same way and must not be re-resolved. `enforceBoundaryForAll()` runs `enforceBoundary()` over every named place and is likewise debug-only. See "Deleting a Place Re-Resolves What Pointed At It" and "A Place Drawn Later Applies to History" in `docs/decisions.md`.
+
+### Automatic rides by location
+
+A place flagged `autoStart` starts a ride when the vehicle **leaves** it; one flagged `autoSave` **pauses** the ride on arrival and commits it after `Settings.autoSaveGraceMinutes` unless the user resumes. An automatic start is **backdated**: the crossing is confirmed after the fact, so `RideMeter.start()` takes the departed place *and* `startedAtMillis` (when the vehicle was first seen outside) and `metersAlready` (straight-line distance from the place to the confirming fix), which seed `priorMeters`/`priorSeconds`. Without them the ride starts at the place but meters from down the road. An automatic *resume* (departure while PAUSED) is corrected the same way — `resume()` takes the same two arguments and `rebaseForDeparture()` adds the driven seconds, folds the distance provider's total into `priorMeters` and resets it so it can't re-measure the same gap; a resume by hand passes neither and is unchanged. See "An Automatic Start Is Backdated to the Departure" in `docs/decisions.md`. Pausing first is deliberate — `pause()` already writes a complete ride, and this is the one save the user cannot confirm; see "Automatic Save Pauses First" in `docs/decisions.md`.
+
+`PlaceWatcher` (`service/PlaceWatcher.kt`) does the detection on the platform `LocationManager`, **not** Play Services and **not** geofencing — `GpsDistanceProvider` is the app's only `com.google.android.gms` dependency and that was kept true on purpose. It polls every `Settings.autoWatchSeconds` (default 60), scheduled as a self-renewing `ELAPSED_REALTIME_WAKEUP` alarm rather than a `delay()` loop — a timer doesn't wake a sleeping CPU, which cost gaps of up to 32 minutes overnight — with a short wake lock held across each sweep. `Settings.autoWatchAccuracy` picks how: `GPS` (the default) takes one real fix per sweep and decides containment outright; `TIERED` asks the cheapest provider first and escalates to GPS only when that fix *disagrees* with the containment already believed and can't prove it, or *agrees* with a belief no precise fix has ever confirmed. The tiered path is much cheaper while parked and much slower to notice a departure — it exists to be measured against the default, and may be dropped. Arrivals don't poll at all: a running ride already streams GPS, so the service feeds it those fixes. A crossing must hold 60 s **and** two fixes before it fires, and the first observation after arming only seeds which side we're on.
+
+`AutoState` is orthogonal to `RideStatus` — there is deliberately no `WATCHING` status. There is also no master switch: flagging a place is the switch, `BootReceiver` re-arms after a reboot, and `quit()` drops to watch-only instead of stopping while any place is flagged. That's what requires `ACCESS_BACKGROUND_LOCATION` — a location foreground service started from the background reads nothing without it, so watching would look alive and never fire.
+
+### The fare
+
+Distance bills at `perMeterRate`. Time splits: `Ride.stoppedSeconds` (time at this ride's stops) bills at `Settings.stoppedHourlyRate`, the rest at `hourlyRate`. `RideMeter.stoppedSecondsNow()` recomputes from the stop rows plus the dwell under way on every tick — never accumulates, because a stop's end time is corrected on departure and `save()` can retract a trailing stop. A dwell counts only after `stopDetectionMinutes` or once the user presses ADD STOP; shorter dwells are traffic lights. `pause()` banks the total and `resume()` shifts `dwellAnchorTime` by the pause, so both this and stop detection measure ride time, not wall time. Both `stoppedSeconds` and the stopped rate are stored on `RideRecord` so a saved ride explains its own amount.
+
+### Units
+
+Everything is stored and computed in **SI internally** — meters, seconds, `perMeterRate` — and converted only for display via `util/UnitConversions.kt` (`displayDistance`, `distanceToUnit`, `unitToDistance`). `Settings.measurementSystem` (US/SI) drives which unit the UI shows and which the user types rates in. Don't let miles leak into stored values.
+
+### Terminology
+
+The person using the app is the **user** — in UI strings, the event log, comments, and docs alike. Not "the driver": a ride can be metered by someone who isn't driving. The vehicle is still the vehicle.
+
+### UI
+
+Compose + Material 3, single-Activity. `MainActivity` only sets the theme and hosts `AppNavigation`, which owns the `NavHost`, the drawer, runtime permission prompts (location, notifications, overlay, battery optimization, and background location), and the quit/cancel dialogs. Routes are enumerated in `ui/Screen.kt`.
+
+Screens are decomposed into small composables (`RideInfoSection`, `RideLiveInfoSection`, `RideControlButton`, `RideViewDialog`, `StopsDialog`, …) — keep that granularity rather than growing a screen file.
+
+Consecutive stops that resolved to the same place are shown as **one** stop everywhere (`ui/StopGroup.kt`) — the rides table, the `A → B → C` summary, and `StopsDialog`. The grouping is display-only: `Stop` rows are never merged, so their points survive to be claimed by a place drawn later, and a stop claimed by a tighter place separates back out on its own. `StopsDialog` lists the dwells behind a grouped visit and shows each one's coordinates; tapping them opens `PlaceEditDialog` on an unsaved `placeAt()` place, which `PlacesViewModel.updatePlace` upserts — that's how a sub-place ("Home Depot Windows") gets drawn over a stop. `PlaceEditDialog` shows **Delete** only when the caller passes `onDelete` and the place already exists, which means the Places list and nowhere else: opened from a stop or from the live ride it is being used to name a spot, not manage one.
+
+`RideInfoSection` is **one** composable shared by the live screen and a saved ride's detail. Both map their own form of ride into `RideInfo` (`ui/RideInfo.kt`) first — don't add a second overload, that's how the two drifted apart before. Don't reach for `Ride.toRecord()` to unify them either: it throws on a ride with no id yet, and `RideRecord.endTime` is non-nullable, so a running ride would report an end time equal to its start time. A ride has no edit mode — its name and amount are edited by tapping their rows (`FieldEditDialog`), the same gesture that opens a place.
+
+`Screen.Advanced` / `AdvancedScreen` (raw `.db` file backup/restore via `DbBackupUtils`, the event-log viewer, the place-link repair, and the databases `SchemaRescue` set aside during an upgrade) is a normal drawer entry that **ships in release builds**, named **Advanced** because every item on it is something a user may need on a phone with no adb attached. It stays a drawer destination rather than a row in Settings because Settings is locked mid-ride and the event log is wanted exactly then. It is not the user-facing export feature — that is the JSON export. The name is a promise: **Restore** and **Repair place links** both confirm first, Restore is disabled mid-ride, and a restore is *staged*, never swapped in live (see below).
+
+`util/EventLog.kt` mirrors the automatic-by-location events to a file in `filesDir` as well as logcat, because auto-start fires when the phone can't be attached to adb. Read/clear it from the Advanced screen. Add to it rather than adding `Log.d` calls when touching `PlaceWatcher` or the auto paths in `RideTrackingService`.
+
+User-facing export/import goes through SAF (`PlacesBackup.kt`, `RidesBackup.kt`, `util/UriIo.kt`), from the TopAppBar overflow menu. Export is JSON for both; places *import* auto-detects JSON, CSV, or GPX (`parsePlacesAuto`). Rides and places export independently; a ride's stops travel inside the ride bundle, and a ride referencing an absent place id just renders `-`.

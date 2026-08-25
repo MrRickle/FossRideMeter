@@ -1,0 +1,27 @@
+FossRideMeter linking exception
+Additional permission under GNU GPL version 3 section 7
+
+Copyright (C) 2026 Rick Hallock
+
+As a special exception, Rick Hallock, the copyright holder of
+FossRideMeter, gives permission to link the code of this program with the
+Google Play services client libraries (the "com.google.android.gms"
+packages), and to copy, distribute, and convey the resulting combined
+work, provided that the requirements of the GNU General Public License
+continue to apply to all of the code that is not those libraries.
+
+Those libraries are proprietary software supplied by Google under its own
+terms. They are not covered by the GNU General Public License, and this
+exception grants no rights in them.
+
+If you modify this program, you may extend this exception to your version
+of it, but you are not obliged to do so. If you do not wish to do so,
+delete this exception statement from your version.
+
+Why this exists: FossRideMeter's GPS distance provider uses the fused
+location provider from Google Play services, which is the only part of
+the app that touches com.google.android.gms. Combining GPL code with
+proprietary libraries is a long-standing gray area, and while the
+copyright holder cannot infringe his own copyright, anyone redistributing
+the app would otherwise inherit that ambiguity. This states the
+permission outright instead of leaving it to be argued.

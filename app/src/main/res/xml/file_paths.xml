@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Matches context.getExternalFilesDir(null) used in DbBackupUtils -->
+    <external-files-path name="backups" path="." />
+
+    <!-- Matches SchemaRescue.directory(), for sharing a set-aside database out -->
+    <files-path name="pre-upgrade" path="pre-upgrade/" />
+</paths>

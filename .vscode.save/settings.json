@@ -1,0 +1,47 @@
+// 1. Install the extension "psioniq File Header" (id: psioniq.psi-header)
+//    from the VS Code Marketplace.
+// 2. Add this to your project's .vscode/settings.json (merge with any
+//    existing content — don't overwrite the whole file if you already
+//    have settings).
+// 3. New .kt files created via VS Code's "New File" will get the header
+//    automatically. Existing files are untouched (use add_license_headers.sh
+//    for those) — you can also trigger it manually via the command palette:
+//    "psioniq File Header: Insert Header".
+{
+  "psi-header.config": {
+    "forceToTop": true,
+    "blankLinesAfter": 1
+  },
+  "psi-header.lang-config": [
+    {
+      "language": "kotlin",
+      "begin": "",
+      "end": "",
+      "prefix": ""
+    }
+  ],
+  "psi-header.templates": [
+    {
+      "language": "*",
+      "template": [
+        "SPDX-License-Identifier: GPL-3.0-or-later",
+        "",
+        "This file is part of FossRideMeter.",
+        "Copyright (C) 2026 Rick Hallock",
+        "",
+        "FossRideMeter is free software: you can redistribute it and/or modify",
+        "it under the terms of the GNU General Public License as published by",
+        "the Free Software Foundation, either version 3 of the License, or",
+        "(at your option) any later version.",
+        "",
+        "FossRideMeter is distributed in the hope that it will be useful,",
+        "but WITHOUT ANY WARRANTY; without even the implied warranty of",
+        "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the",
+        "GNU General Public License for more details.",
+        "",
+        "You should have received a copy of the GNU General Public License",
+        "along with FossRideMeter. If not, see <https://www.gnu.org/licenses/>."
+      ]
+    }
+  ]
+}
