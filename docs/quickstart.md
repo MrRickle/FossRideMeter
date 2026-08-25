@@ -88,7 +88,7 @@ backup is switched off, so
 **rides will not be restored automatically.**
 
 Export them yourself: In both the Rides and Places screens, tap the three dots, then
-**Export**.  Both write a JSON file wherever you point them, and Import reads them back.
+**Export**. Both write a JSON file wherever you point them, and Import reads them back.
 
 Uninstalling the app deletes everything it holds, including the database
 backup on the Advanced screen. **Export** before you uninstall.
