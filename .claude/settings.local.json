@@ -19,7 +19,18 @@
       "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell input tap 454 828)",
       "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell input tap 56 111)",
       "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell input tap 91 688)",
-      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell input swipe 360 1000 360 250 400)"
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s emulator-5554 shell input swipe 360 1000 360 250 400)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git rm *)",
+      "Bash(rm -f \".claude/settings.local.json.tmp.13737.304225dc19ec\")",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s ZN32225RZ7 shell run-as org.fossridemeter.app ls -l databases/)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s ZN32225RZ7 shell run-as org.fossridemeter.app ls -R files/)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s ZN32225RZ7 shell run-as org.fossridemeter.app find . -name *.preferences_pb -o -name *.xml)",
+      "Bash(/home/rick/Android/Sdk/platform-tools/adb -s ZN32225RZ7 shell dumpsys activity services org.fossridemeter.app)",
+      "Bash(sed -i 's/It polls every `Settings.autoWatchSeconds` \\(default 60\\)/It polls every `Settings.autoWatchSeconds` \\(default 40 — the idle interval only; a candidate crossing polls at `CANDIDATE_POLL_SECONDS`, 15 s\\)/' CLAUDE.md)",
+      "Bash(sed -i 's/  `Settings.autoWatchSeconds`, default 60. GPS is powered up only when the/  `Settings.autoWatchSeconds`, default 40. GPS is powered up only when the/' docs/architecture.md)",
+      "Bash(sed -i 's/departure \\(default 60 s\\), how long the grace window lasts \\(default 5 min\\),/departure \\(default 40 s\\), how long the grace window lasts \\(default 2 min\\),/' docs/ui.md)"
     ]
   }
 }
