@@ -137,7 +137,7 @@ fun RidesScreen(
             HeaderCell("End Time", TimeWidth)
             HeaderCell("Rate", RateWidth)
             HeaderCell("Per Hour", RateWidth)
-            HeaderCell("Per Hour Stopped", RateWidth)
+            HeaderCell("Per Hour While Stopped", RateWidth)
             HeaderCell("Base", BaseWidth)
             HeaderCell("Minimum", MinWidth)
             HeaderCell("Original Amount", AmountWidth)

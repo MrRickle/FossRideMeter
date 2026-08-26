@@ -413,15 +413,9 @@ private fun SettingsRatesSection(
             }
         },
         label = {
-            Text("Per Hour Stopped")
+            Text("Per Hour While Stopped")
         },
         singleLine = true,
-    )
-
-    Text(
-        text = "Time at a stop is billed at this rate instead. Waiting at " +
-                "a light is not a stop.",
-        style = MaterialTheme.typography.bodySmall
     )
 
     Spacer(Modifier.height(8.dp))

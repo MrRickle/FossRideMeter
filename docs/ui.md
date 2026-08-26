@@ -202,10 +202,10 @@ Live, it shows only rows that already have a real value, so the section
 grows as the ride progresses instead of displaying a wall of zeroes and
 dashes. For a saved ride it shows every field: Amount, Distance, Start
 Place, Stops, End Place, Duration, Stopped, Start/End Time, Rate, Per
-Hour, Per Hour Stopped, Base, Minimum, Original Amount, Start/End
+Hour, Per Hour While Stopped, Base, Minimum, Original Amount, Start/End
 Location, GPS Provider.
 
-**Stopped** and **Per Hour Stopped** appear only when there is something
+**Stopped** and **Per Hour While Stopped** appear only when there is something
 to say: no stopped time means no Stopped row, and a ride recorded before
 the stopped rate existed has no rate to show.
 

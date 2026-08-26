@@ -165,7 +165,7 @@ fun RideInfoSection(
     InfoRow("Per Hour", displayAmount(info.hourlyRate))
 
     info.stoppedHourlyRate?.let { rate ->
-        InfoRow("Per Hour Stopped", displayAmount(rate))
+        InfoRow("Per Hour While Stopped", displayAmount(rate))
     }
 
     InfoRow("Base", displayAmount(info.baseAmount))

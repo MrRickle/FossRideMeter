@@ -16,6 +16,8 @@ the shape of things may still change between minor versions.
 
 ### Changed
 
+- **The stopped hourly rate is now labelled "Per Hour While Stopped"**, in Settings, on a saved ride, and in the rides table, and the paragraph explaining it is gone — the label says it.
+
 - **Settings that affect how a ride is measured now say their default.** Stop detection, location check, auto-save grace and minimum speed each carry a line like "3 = default", so you can see what you have changed and what to put back.
 
 - **The Simulator drives a round trip instead of a one-way line.** It
