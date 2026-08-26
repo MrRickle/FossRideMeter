@@ -819,10 +819,10 @@ private val SIMULATOR_HELP =
         "9. Parks 4 minutes.\n" +
         "10. Moves 40 m and back, then sits.\n" +
         "\n" +
-        "What to expect:\n" +
+        "What to expect with defaults:\n" +
         "\n" +
         "Only the 3.5 minute halt becomes a stop. The 30 second and 2 " +
-        "minute ones are shorter than your stop detection time.\n" +
+        "minute ones are shorter than the default stop detection time.\n" +
         "\n" +
         "Save the ride and it keeps one stop and 3:30 of stopped time. " +
         "The park at home is dropped, because the ride ends there.\n" +
