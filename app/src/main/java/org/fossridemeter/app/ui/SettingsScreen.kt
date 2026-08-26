@@ -558,7 +558,10 @@ private fun SettingsStopsSection(
             keyboardType = KeyboardType.Number
         ),
         supportingText = {
-            Text("How long stationary before it counts as a stop")
+            Text(
+                "${DEFAULTS.stopDetectionMinutes} = default. " +
+                    "How long stationary before it counts as a stop"
+            )
         }
     )
 }
@@ -635,7 +638,10 @@ private fun SettingsAutoSection(
             keyboardType = KeyboardType.Number
         ),
         supportingText = {
-            Text("How often to check for leaving an auto-start place")
+            Text(
+                "${DEFAULTS.autoWatchSeconds} = default. " +
+                    "How often to check for leaving an auto-start place"
+            )
         }
     )
 
@@ -673,7 +679,10 @@ private fun SettingsAutoSection(
             keyboardType = KeyboardType.Number
         ),
         supportingText = {
-            Text("Time to resume before an arrival saves the ride")
+            Text(
+                "${DEFAULTS.autoSaveGraceMinutes} = default. " +
+                    "Time to resume before an arrival saves the ride"
+            )
         }
     )
 
@@ -803,6 +812,18 @@ private fun SettingsDistanceProvider(
  * Kept in step with the phase list in SimulatedDistanceProvider - if a
  * leg changes there, this is what tells the user it did.
  */
+/**
+ * What a fresh install starts on, for the "N = default" notes under the
+ * settings that change how a ride is measured.
+ *
+ * Read from Settings() rather than written into the strings: a default
+ * quoted on screen that no longer matches the code is worse than no
+ * default at all, and this app has already had one number mean
+ * something different in the place it was stored from the place it was
+ * shown - see perMeterRate.
+ */
+private val DEFAULTS = Settings()
+
 private val SIMULATOR_HELP =
     "Replays a fixed test drive so you can try the app without driving. " +
         "About 19 minutes and 5.13 miles, ending where it started.\n" +
@@ -890,7 +911,11 @@ private fun SettingsMinimumGpsSpeed(
             }
         },
         supportingText = {
-            Text("0 = count all movement")
+            Text(
+                "%.1f = default, 0 = count all movement".format(
+                    distanceToUnit(DEFAULTS.minimumSpeedMps, unit) * 3600
+                )
+            )
         }
     )
 

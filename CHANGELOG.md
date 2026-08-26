@@ -16,6 +16,8 @@ the shape of things may still change between minor versions.
 
 ### Changed
 
+- **Settings that affect how a ride is measured now say their default.** Stop detection, location check, auto-save grace and minimum speed each carry a line like "3 = default", so you can see what you have changed and what to put back.
+
 - **The Simulator drives a round trip instead of a one-way line.** It
   waits ten seconds rather than a minute for its first fix, halts three
   times — 30 seconds, 2 minutes and 3.5 minutes — and returns to exactly
