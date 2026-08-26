@@ -339,13 +339,26 @@ implementations are selected by `Settings.distanceProvider`:
   the 3-minute `stopDetectionMinutes` default, so the first two must stay
   traffic and only the third becomes a `Stop` — then mirrors its outbound
   legs back to the *exact* starting coordinates and parks for four
-  minutes. Ending where it began is what exercises an `autoSave` arrival
-  and an end place equal to the start place; a real run named itself
-  "Home → Home". Those last four minutes add stopped *time* but no second
-  stop, because a dwell only becomes a `Stop` when the vehicle departs
-  it. The opening driving leg runs two minutes, longer than a
-  departure takes to confirm, so an `autoStart` place fires during it.
-  About 19 minutes and 5.08 miles.
+  minutes, then nudges 40 m and back. Ending where it began is what
+  exercises an `autoSave` arrival and an end place equal to the start
+  place; a real run named itself "Home → Home".
+
+  The nudge is not decoration. A dwell only becomes a `Stop` when the
+  vehicle *departs* it, so the park at home would otherwise never be
+  written down; going 40 m — past the 30 m dwell anchor radius — records
+  it, and coming straight back leaves that stop sitting at the place the
+  ride ends, which is precisely what `save()` has to retract. A saved run
+  holds one stop and 3:30 of stopped time; a paused one holds two.
+
+  Distance is speed × duration, and the return legs (80 mph for 105 s,
+  then 25 mph for 30 s) come to 9,150 mph·seconds — the same as the
+  outbound 35/25/45 mph legs. That equality is what makes the finish
+  coordinates the start coordinates rather than merely close, so keep it
+  if you change a leg.
+
+  The opening driving leg runs two minutes, longer than a departure takes
+  to confirm, so an `autoStart` place fires during it. The whole script is
+  about 19 minutes and 5.13 miles.
 
   It cannot test `Settings.minimumSpeedMps`. That gate lives in
   `GpsDistanceProvider` and reads each fix's reported speed; the

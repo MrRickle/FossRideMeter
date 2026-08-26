@@ -22,8 +22,9 @@ the shape of things may still change between minor versions.
   where it started before parking. The halts sit either side of the
   3-minute stop-detection default, so a single run shows whether short
   waits are correctly ignored and long ones correctly charged; ending at
-  the starting point exercises arriving back at an auto-save place.
-  About 19 minutes and 5.08 miles.
+  the starting point exercises arriving back at an auto-save place, and a
+  short reposition at the end produces the trailing stop that saving has
+  to retract. About 19 minutes and 5.13 miles.
 
 ## 0.1.2 — 2026-08-26
 

@@ -97,29 +97,28 @@ class SimulatedDistanceProvider : DistanceProvider {
      *   the 3-minute `stopDetectionMinutes` default from both sides. The
      *   first two must stay traffic and produce no `Stop`; the third must
      *   become one and bill at `stoppedHourlyRate`.
-     *   A run that ends with anything but exactly one stop has found a
-     *   bug.
-     * * The four minutes parked at the end are over the threshold too,
-     *   but produce no second stop: a dwell only becomes a `Stop` when
-     *   the vehicle *departs* it, and this one never does. What it does
-     *   instead is accrue stopped *time* - the `dwelling` term in
-     *   `RideMeter.stoppedSecondsNow()` - so a ride left running while
-     *   parked bills that time at `stoppedHourlyRate`. Watch the Stopped
-     *   figure climb while the stop count stays at one.
-     *   (Exercising `save()`'s retraction of a trailing stop needs a
-     *   recorded stop at the end place, which needs a departure after
-     *   it; the script does not currently produce one.)
+     * * The four minutes parked at home are over the threshold too, and
+     *   the 40 m reposition after them is what turns that dwell into a
+     *   recorded `Stop` - a dwell is only written down when the vehicle
+     *   departs it. Because the reposition comes straight back, that
+     *   stop sits at the place the ride ends, so **`save()` must retract
+     *   it**. A saved run therefore holds one stop and a `Stopped` time
+     *   of 3:30, the middle halt alone; a run inspected while still
+     *   paused holds two. Either count being wrong is a bug, and so is a
+     *   `Stopped` figure that still carries the four minutes at home.
      * * The **first driving leg is two minutes**, comfortably longer than
      *   a departure needs to be confirmed - 60 s and two fixes, polled
      *   every `autoWatchSeconds` (30 s) - so a place flagged `autoStart`
      *   fires during that leg rather than after the script has moved on.
      *   It clears a placeholder's 61 m radius, and the 100 m beyond it
      *   that counts as a decisive departure, within fifteen seconds.
-     * * The return legs mirror the outbound ones along the reciprocal
-     *   heading, so the ride **ends where it started** - verified on a
-     *   real run, which named itself "Home -> Home". That is what
-     *   exercises an `autoSave` place and an end place equal to the
-     *   start place.
+     * * The return runs at 80 mph and then 25 mph for the last stretch,
+     *   and cancels the outbound legs **exactly**: distance is
+     *   speed x duration, and 80x105 + 25x30 is 9,150 mph-seconds, the
+     *   same as the outbound 35x120 + 25x90 + 45x60. So the ride ends on
+     *   the coordinates it started from rather than near them - verified
+     *   on a real run, which named itself "Home -> Home". Any change to
+     *   a driving leg has to keep those two sums equal.
      * * Those same four minutes give an `autoSave` arrival time to be
      *   noticed and `autoSaveGraceMinutes` (2) time to run out.
      *
@@ -151,14 +150,32 @@ class SimulatedDistanceProvider : DistanceProvider {
         // Over the threshold. This one is a stop, and bills as one.
         Phase(durationSeconds = 210, speedMph = 0.0, status = DistanceStatus.GOOD),
 
-        // Home, back down the same line.
-        Phase(durationSeconds = 60, speedMph = 45.0, status = DistanceStatus.GOOD, headingDegrees = RETURN_HEADING_DEGREES),
-        Phase(durationSeconds = 90, speedMph = 25.0, status = DistanceStatus.GOOD, headingDegrees = RETURN_HEADING_DEGREES),
-        Phase(durationSeconds = 120, speedMph = 35.0, status = DistanceStatus.GOOD, headingDegrees = RETURN_HEADING_DEGREES),
+        // Home, back down the same line: highway, then a slower approach.
+        // The two together cover the outbound distance exactly - see the
+        // note on cancelling out, below.
+        Phase(durationSeconds = 105, speedMph = 80.0, status = DistanceStatus.GOOD, headingDegrees = RETURN_HEADING_DEGREES),
+        Phase(durationSeconds = 30, speedMph = 25.0, status = DistanceStatus.GOOD, headingDegrees = RETURN_HEADING_DEGREES),
 
-        // Parked at home, long enough for an arrival to be noticed and
-        // the automatic save's grace window to elapse.
+        // Parked at home, past stopDetectionMinutes, and long enough for
+        // an arrival to be noticed and the automatic save's grace window
+        // to elapse.
         Phase(durationSeconds = 240, speedMph = 0.0, status = DistanceStatus.GOOD),
+
+        // Reposition: 40 m out and 40 m back, at walking-ish speed.
+        //
+        // This is what gets save()'s trailing-stop retraction tested. The
+        // park above is a qualifying dwell but not yet a Stop, because a
+        // dwell is only written down when the vehicle *departs* it. Going
+        // 40 m - past the 30 m dwell anchor radius - is that departure,
+        // so the stop at home is recorded; coming straight back leaves
+        // the ride ending on the same coordinates it started on, which
+        // makes that stop's place the end place, which is exactly what
+        // save() must retract.
+        Phase(durationSeconds = 9, speedMph = 10.0, status = DistanceStatus.GOOD),
+        Phase(durationSeconds = 9, speedMph = 10.0, status = DistanceStatus.GOOD, headingDegrees = RETURN_HEADING_DEGREES),
+
+        // Settle. Under the threshold, so it adds no stop of its own.
+        Phase(durationSeconds = 90, speedMph = 0.0, status = DistanceStatus.GOOD),
     )
 
     private val _distance =
