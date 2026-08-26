@@ -4,6 +4,16 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
+## Unreleased
+
+### Fixed
+
+- **Pausing and resuming a ride on the Simulator sent the distance back
+  to zero** and replayed the simulated route from the beginning,
+  including its opening minute of waiting. The simulator cleared itself
+  when it was started, and resuming a ride starts the distance provider
+  again. Real GPS rides were never affected.
+
 ## 0.1.2 — 2026-08-26
 
 ### Changed

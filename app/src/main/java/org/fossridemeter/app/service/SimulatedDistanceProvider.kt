@@ -109,36 +109,64 @@ class SimulatedDistanceProvider : DistanceProvider {
     private var job: Job? = null
 
     private var totalMeters = 0.0
+
+    // Where the timeline had got to. Held across a stop so start() can
+    // pick the script up rather than replay it - see start().
+    private var phaseIndex = 0
+    private var tickInPhase = 0
+
     private var latitude = START_LATITUDE
     private var longitude = START_LONGITUDE
 
+    /**
+     * Runs the scripted timeline, continuing from wherever it stopped.
+     *
+     * start() must *resume*, not restart: RideMeter.resume() calls it
+     * after a pause, on the documented understanding that pausing never
+     * reset the providers. This used to call resetSimulationState()
+     * here, which zeroed the odometer and replayed the script from the
+     * top - so pausing a simulated ride and resuming it sent the
+     * distance back to 0, put the vehicle back at the start
+     * coordinates, and made the user sit through the opening minute of
+     * WAITING again.
+     *
+     * GpsDistanceProvider.start() has always behaved this way - it only
+     * re-registers for updates and keeps its total - and reset() is what
+     * zeroes either of them. A new ride gets a new provider from
+     * RideMeter.start() regardless, so nothing depends on start()
+     * clearing anything.
+     */
     override fun start() {
 
         job?.cancel()
-        resetSimulationState()
 
         job = scope.launch {
 
-            Log.d(TAG, "Simulator started")
+            Log.d(TAG, "Simulator started at phase $phaseIndex tick $tickInPhase")
 
-            _gpsInfo.value = GpsInfo(
-                status = DistanceStatus.WAITING,
-                accuracy = 0f,
-                rideLocation = currentLocation(),
-                moving = false
-            )
+            // Report where the vehicle actually is: the first phase on a
+            // fresh start, whatever the script had reached on a resume.
+            phases.getOrNull(phaseIndex)?.let { phase ->
+                _gpsInfo.value = GpsInfo(
+                    status = phase.status,
+                    accuracy = if (phase.status == DistanceStatus.WAITING) 0f else 5f,
+                    rideLocation = currentLocation(),
+                    moving = false
+                )
+            }
 
-            for (phase in phases) {
+            while (phaseIndex < phases.size) {
 
-                if (!isActive) break
+                val phase = phases[phaseIndex]
 
-                repeat(phase.durationSeconds) {
+                while (tickInPhase < phase.durationSeconds) {
 
-                    if (!isActive) return@repeat
+                    if (!isActive) return@launch
 
                     delay(TICK)
 
                     advance(phase)
+                    tickInPhase++
 
                     Log.d(
                         TAG,
@@ -150,6 +178,9 @@ class SimulatedDistanceProvider : DistanceProvider {
                             )
                     )
                 }
+
+                phaseIndex++
+                tickInPhase = 0
             }
 
             // Final stop: parked at the last computed location.
@@ -178,6 +209,8 @@ class SimulatedDistanceProvider : DistanceProvider {
     private fun resetSimulationState() {
 
         totalMeters = 0.0
+        phaseIndex = 0
+        tickInPhase = 0
         latitude = START_LATITUDE
         longitude = START_LONGITUDE
         _distance.value = 0.0
