@@ -4,7 +4,7 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
-## Unreleased
+## 0.1.3 — 2026-08-26
 
 ### Fixed
 
@@ -16,9 +16,14 @@ the shape of things may still change between minor versions.
 
 ### Changed
 
-- **The stopped hourly rate is now labelled "Per Hour While Stopped"**, in Settings, on a saved ride, and in the rides table, and the paragraph explaining it is gone — the label says it.
+- **The stopped hourly rate is now labelled "Per Hour While Stopped"** —
+  in Settings, on a saved ride, and in the rides table — and the
+  paragraph that used to explain it is gone. The label says it.
 
-- **Settings that affect how a ride is measured now say their default.** Stop detection, location check, auto-save grace and minimum speed each carry a line like "3 = default", so you can see what you have changed and what to put back.
+- **Settings that affect how a ride is measured now say their default.**
+  Stop detection, location check, auto-save grace and minimum speed each
+  carry a line like "3 = default", so you can see what you have changed
+  and what to put back.
 
 - **The Simulator drives a round trip instead of a one-way line.** It
   waits ten seconds rather than a minute for its first fix, halts three
