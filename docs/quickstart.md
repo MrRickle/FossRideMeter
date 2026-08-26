@@ -56,8 +56,8 @@ the floating amount bubble can work.
 ## Rates
 
 * **Per mile** or per kilometre — charged on distance travelled.
-* **Per hour** — calculated from time while moving.
-* **Per hour stopped** — calculated from time while stopped.
+* **Per hour** — calculated from ride time.
+* **Per hour while stopped** — calculated from time at stops instead.
 * **Base amount** — added to every ride.
 * **Minimum amount** — The amount until the calculated amount is greater.  
 * Saved rides keep the rates they were created with.
