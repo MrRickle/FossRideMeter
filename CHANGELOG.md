@@ -4,7 +4,7 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
-## Unreleased
+## 0.1.2 — 2026-08-26
 
 ### Changed
 

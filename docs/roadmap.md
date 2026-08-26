@@ -1,6 +1,6 @@
 # FossRideMeter Roadmap
 
-Status as of the current `main`. Version `0.1.1` — pre-release, no
+Status as of the current `main`. Version `0.1.2` — pre-release, no
 outside users yet.
 
 ## Done
@@ -136,7 +136,7 @@ outside users yet.
 
 ### Ready to publish
 
-* Version `0.1.1`, signed release build verified against the release key.
+* Version `0.1.2`, signed release build verified against the release key.
 * `CHANGELOG.md`, and an Installing section in the README covering
   sideloading, the signing-key rule, and what a fresh install meters.
 * A fresh install meters real GPS; the simulator is a Settings away.
