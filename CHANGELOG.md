@@ -24,7 +24,8 @@ the shape of things may still change between minor versions.
   waits are correctly ignored and long ones correctly charged; ending at
   the starting point exercises arriving back at an auto-save place, and a
   short reposition at the end produces the trailing stop that saving has
-  to retract. About 19 minutes and 5.13 miles.
+  to retract. About 19 minutes and 5.13 miles. An ⓘ button beside the
+  Simulator setting describes the whole drive and what to expect from it.
 
 ## 0.1.2 — 2026-08-26
 

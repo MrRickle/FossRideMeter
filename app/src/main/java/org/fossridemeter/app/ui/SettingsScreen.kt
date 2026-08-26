@@ -730,6 +730,10 @@ private fun SettingsDistanceProvider(
 
     Spacer(Modifier.height(6.dp))
 
+    var showSimulatorHelp by rememberSaveable {
+        mutableStateOf(false)
+    }
+
     DistanceProviderType.entries.forEach { type ->
 
         Row(
@@ -754,9 +758,80 @@ private fun SettingsDistanceProvider(
                 modifier = Modifier.padding(start = 8.dp)
 
             )
+
+            // The simulator drives a fixed script. Someone choosing it
+            // has no way to know what it is about to do, or which of the
+            // things it does are deliberate - so the script is on the
+            // screen that offers it, the same way the minimum speed
+            // explains itself.
+            if (type == DistanceProviderType.SIMULATOR) {
+                IconButton(
+                    onClick = { showSimulatorHelp = true }
+                ) {
+                    Text("ⓘ")
+                }
+            }
         }
     }
+
+    if (showSimulatorHelp) {
+        AlertDialog(
+            onDismissRequest = { showSimulatorHelp = false },
+            title = {
+                Text("Simulator")
+            },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    Text(SIMULATOR_HELP)
+                }
+            },
+            confirmButton = {
+                Button(onClick = { showSimulatorHelp = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
 }
+
+/**
+ * What the simulated drive does, for the dialog behind the Simulator
+ * radio button.
+ *
+ * Kept in step with the phase list in SimulatedDistanceProvider - if a
+ * leg changes there, this is what tells the user it did.
+ */
+private val SIMULATOR_HELP =
+    "Replays a fixed test drive so you can try the app without driving. " +
+        "About 19 minutes and 5.13 miles, ending where it started.\n" +
+        "\n" +
+        "The drive:\n" +
+        "1. Waits 10 seconds for a fix.\n" +
+        "2. Drives 2 minutes.\n" +
+        "3. Stops 30 seconds.\n" +
+        "4. Drives 1.5 minutes, with GPS shown as poor.\n" +
+        "5. Stops 2 minutes.\n" +
+        "6. Drives 1 minute.\n" +
+        "7. Stops 3.5 minutes.\n" +
+        "8. Drives home at 80 mph, then slower.\n" +
+        "9. Parks 4 minutes.\n" +
+        "10. Moves 40 m and back, then sits.\n" +
+        "\n" +
+        "What to expect:\n" +
+        "\n" +
+        "Only the 3.5 minute halt becomes a stop. The 30 second and 2 " +
+        "minute ones are shorter than your stop detection time.\n" +
+        "\n" +
+        "Save the ride and it keeps one stop and 3:30 of stopped time. " +
+        "The park at home is dropped, because the ride ends there.\n" +
+        "\n" +
+        "Set a place to auto-start and it fires during step 2. Set it " +
+        "to auto-save and step 9 triggers it.\n" +
+        "\n" +
+        "Minimum Speed does nothing here - the simulator reports " +
+        "distance directly. Test that one on GPS."
 
 
 @Composable

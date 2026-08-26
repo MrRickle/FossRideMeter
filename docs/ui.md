@@ -25,6 +25,8 @@ the person who changed name.
 | `places` | `PlacesScreen` | Saved places, editable |
 | `settings` | `SettingsScreen` | Rates (including the stopped hourly rate), units, provider, stop detection, sounds |
 
+Two settings carry an ⓘ button: **Minimum Speed**, and **Simulator** under Distance Provider. The simulator's describes the whole scripted drive — its ten steps, which halt becomes a stop and why the other two don't, what a saved run should read, and that Minimum Speed has no effect there. Someone selecting the simulator otherwise has no way to know what it is about to do, or which of the things it does are deliberate. Keep `SIMULATOR_HELP` in `SettingsScreen.kt` in step with the phase list in `SimulatedDistanceProvider`.
+
 The Sounds section lists the five ride actions, each naming the sound it
 currently makes and opening the system sound picker when tapped. "Built-in
 tone" is the default — a platform tone, not a file — and a **Built-in**
