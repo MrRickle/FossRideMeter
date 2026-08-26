@@ -23,3 +23,7 @@ logs/
 
 # Stray build/decompile output
 *.class
+
+# Staged release artifacts: the APK and its mapping.txt are attached to
+# a GitHub release, not committed - mapping.txt alone is ~38 MB.
+/release/
