@@ -14,6 +14,17 @@ the shape of things may still change between minor versions.
   when it was started, and resuming a ride starts the distance provider
   again. Real GPS rides were never affected.
 
+### Changed
+
+- **The Simulator drives a round trip instead of a one-way line.** It
+  waits ten seconds rather than a minute for its first fix, halts three
+  times — 30 seconds, 2 minutes and 3.5 minutes — and returns to exactly
+  where it started before parking. The halts sit either side of the
+  3-minute stop-detection default, so a single run shows whether short
+  waits are correctly ignored and long ones correctly charged; ending at
+  the starting point exercises arriving back at an auto-save place.
+  About 19 minutes and 5.08 miles.
+
 ## 0.1.2 — 2026-08-26
 
 ### Changed

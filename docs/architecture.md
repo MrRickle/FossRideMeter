@@ -330,9 +330,26 @@ implementations are selected by `Settings.distanceProvider`:
   into `DistanceStatus.GOOD` (≤ 10 m), `POOR` (≤ 30 m), or `WAITING`. See
   "The Defaults a Fresh Install Starts On" in `decisions.md` for why the
   threshold sits at walking pace rather than near traffic speed.
-* `SimulatedDistanceProvider` — a scripted timeline of legs, so the whole
-  UI can be exercised with no GPS hardware. Selected in Settings;
+* `SimulatedDistanceProvider` — a scripted round trip, so the whole UI
+  can be exercised with no GPS hardware. Selected in Settings;
   `GpsDistanceProvider` is what a fresh install gets.
+
+  The script is built against the defaults rather than merely to move a
+  number: it drives out, halts for 30 s, 2 min and 3.5 min — straddling
+  the 3-minute `stopDetectionMinutes` default, so the first two must stay
+  traffic and only the third becomes a `Stop` — then mirrors its outbound
+  legs back to the *exact* starting coordinates and parks for four
+  minutes. Ending where it began is what exercises an `autoSave` arrival
+  and an end place equal to the start place; a real run named itself
+  "Home → Home". Those last four minutes add stopped *time* but no second
+  stop, because a dwell only becomes a `Stop` when the vehicle departs
+  it. The opening driving leg runs two minutes, longer than a
+  departure takes to confirm, so an `autoStart` place fires during it.
+  About 19 minutes and 5.08 miles.
+
+  It cannot test `Settings.minimumSpeedMps`. That gate lives in
+  `GpsDistanceProvider` and reads each fix's reported speed; the
+  simulator publishes distance directly, so no leg is ever gated by it.
 
 `TimeProvider` / `SystemTimeProvider` follows the same pattern for elapsed
 time.

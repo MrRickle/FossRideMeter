@@ -36,15 +36,17 @@ import kotlin.time.Duration.Companion.seconds
 /**
  * Simulates a ride so the UI can be exercised without real GPS hardware.
  *
- * Timeline:
- *  1. Sit at the start location for 60s while a fix is "acquired" (WAITING).
- *  2. Move at ~20 mph for 10s.
- *  3. Move at ~60 mph for 50s.
- *  4. Stop for 60s.
- *  5. Move for 60s.
- *  6. Stop for 300s (5 min).
- *  7. Move for 60s.
- *  8. Come to a final stop at the resulting location.
+ * The script is a round trip - out along a fixed heading, three halts,
+ * then back down the same line to where it began - and it is chosen to
+ * exercise the app's own thresholds rather than just to move a number.
+ * See [phases] for what each leg is for. It runs about 19 minutes and
+ * covers a little over 5 miles.
+ *
+ * One thing it cannot test: `Settings.minimumSpeedMps`. That gate lives
+ * in [GpsDistanceProvider], which decides from a fix's reported speed
+ * whether to count the movement. This provider reports distance
+ * directly, so no speed here is ever gated and a leg slower than the
+ * minimum would still bill. Test that one on real GPS.
  */
 class SimulatedDistanceProvider : DistanceProvider {
 
@@ -55,8 +57,12 @@ class SimulatedDistanceProvider : DistanceProvider {
         const val START_LATITUDE = 37.7749
         const val START_LONGITUDE = -122.4194
 
-        // Fixed compass heading (degrees) the simulated ride travels along.
+        // Compass heading (degrees) the outbound legs travel along, and
+        // the reciprocal the return legs come back on. Mirroring the
+        // outbound legs against it is what lands the ride back home
+        // rather than merely near it.
         const val HEADING_DEGREES = 45.0
+        const val RETURN_HEADING_DEGREES = HEADING_DEGREES + 180.0
 
         const val METERS_PER_DEGREE_LATITUDE = 111_320.0
 
@@ -75,19 +81,84 @@ class SimulatedDistanceProvider : DistanceProvider {
     private data class Phase(
         val durationSeconds: Int,
         val speedMph: Double,
-        val status: DistanceStatus
+        val status: DistanceStatus,
+        val headingDegrees: Double = HEADING_DEGREES
     ) {
         val moving: Boolean get() = speedMph > 0.0
     }
 
+    /**
+     * The legs of the simulated ride, in order.
+     *
+     * The durations are picked against the defaults in [Settings] so a
+     * single run says whether they behave:
+     *
+     * * The three halts are **30 s, 2 min and 3.5 min**, which straddles
+     *   the 3-minute `stopDetectionMinutes` default from both sides. The
+     *   first two must stay traffic and produce no `Stop`; the third must
+     *   become one and bill at `stoppedHourlyRate`.
+     *   A run that ends with anything but exactly one stop has found a
+     *   bug.
+     * * The four minutes parked at the end are over the threshold too,
+     *   but produce no second stop: a dwell only becomes a `Stop` when
+     *   the vehicle *departs* it, and this one never does. What it does
+     *   instead is accrue stopped *time* - the `dwelling` term in
+     *   `RideMeter.stoppedSecondsNow()` - so a ride left running while
+     *   parked bills that time at `stoppedHourlyRate`. Watch the Stopped
+     *   figure climb while the stop count stays at one.
+     *   (Exercising `save()`'s retraction of a trailing stop needs a
+     *   recorded stop at the end place, which needs a departure after
+     *   it; the script does not currently produce one.)
+     * * The **first driving leg is two minutes**, comfortably longer than
+     *   a departure needs to be confirmed - 60 s and two fixes, polled
+     *   every `autoWatchSeconds` (30 s) - so a place flagged `autoStart`
+     *   fires during that leg rather than after the script has moved on.
+     *   It clears a placeholder's 61 m radius, and the 100 m beyond it
+     *   that counts as a decisive departure, within fifteen seconds.
+     * * The return legs mirror the outbound ones along the reciprocal
+     *   heading, so the ride **ends where it started** - verified on a
+     *   real run, which named itself "Home -> Home". That is what
+     *   exercises an `autoSave` place and an end place equal to the
+     *   start place.
+     * * Those same four minutes give an `autoSave` arrival time to be
+     *   noticed and `autoSaveGraceMinutes` (2) time to run out.
+     *
+     * It totals 8,180 m - 5.08 miles - and the return legs cancel the
+     * outbound ones exactly, so the finishing coordinates are the
+     * starting ones rather than merely close to them.
+     */
     private val phases = listOf(
-        Phase(durationSeconds = 60, speedMph = 0.0, status = DistanceStatus.WAITING),
-        Phase(durationSeconds = 10, speedMph = 20.0, status = DistanceStatus.GOOD),
-        Phase(durationSeconds = 50, speedMph = 60.0, status = DistanceStatus.GOOD),
-        Phase(durationSeconds = 60, speedMph = 0.0, status = DistanceStatus.GOOD),
-        Phase(durationSeconds = 60, speedMph = 20.0, status = DistanceStatus.GOOD),
-        Phase(durationSeconds = 300, speedMph = 0.0, status = DistanceStatus.GOOD),
-        Phase(durationSeconds = 60, speedMph = 20.0, status = DistanceStatus.GOOD),
+
+        // Acquiring a fix. Ten seconds rather than the minute this used
+        // to be: long enough to see WAITING on screen, short enough that
+        // nobody testing has to sit through it.
+        Phase(durationSeconds = 10, speedMph = 0.0, status = DistanceStatus.WAITING),
+
+        // Out. Long enough for an auto-start to confirm and fire.
+        Phase(durationSeconds = 120, speedMph = 35.0, status = DistanceStatus.GOOD),
+
+        // A light. Under the threshold, so not a stop.
+        Phase(durationSeconds = 30, speedMph = 0.0, status = DistanceStatus.GOOD),
+
+        // POOR for a stretch, so the GPS status on screen is seen to move.
+        Phase(durationSeconds = 90, speedMph = 25.0, status = DistanceStatus.POOR),
+
+        // Still under the threshold at two minutes, so still not a stop.
+        Phase(durationSeconds = 120, speedMph = 0.0, status = DistanceStatus.GOOD),
+
+        Phase(durationSeconds = 60, speedMph = 45.0, status = DistanceStatus.GOOD),
+
+        // Over the threshold. This one is a stop, and bills as one.
+        Phase(durationSeconds = 210, speedMph = 0.0, status = DistanceStatus.GOOD),
+
+        // Home, back down the same line.
+        Phase(durationSeconds = 60, speedMph = 45.0, status = DistanceStatus.GOOD, headingDegrees = RETURN_HEADING_DEGREES),
+        Phase(durationSeconds = 90, speedMph = 25.0, status = DistanceStatus.GOOD, headingDegrees = RETURN_HEADING_DEGREES),
+        Phase(durationSeconds = 120, speedMph = 35.0, status = DistanceStatus.GOOD, headingDegrees = RETURN_HEADING_DEGREES),
+
+        // Parked at home, long enough for an arrival to be noticed and
+        // the automatic save's grace window to elapse.
+        Phase(durationSeconds = 240, speedMph = 0.0, status = DistanceStatus.GOOD),
     )
 
     private val _distance =
@@ -224,7 +295,7 @@ class SimulatedDistanceProvider : DistanceProvider {
 
         if (phase.moving && metersThisTick > 0.0) {
 
-            val headingRadians = Math.toRadians(HEADING_DEGREES)
+            val headingRadians = Math.toRadians(phase.headingDegrees)
             val metersPerDegreeLongitude =
                 METERS_PER_DEGREE_LATITUDE * cos(Math.toRadians(latitude))
 
