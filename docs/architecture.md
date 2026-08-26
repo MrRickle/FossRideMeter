@@ -328,7 +328,7 @@ implementations are selected by `Settings.distanceProvider`:
   whether movement counts at all, defaulting to 3 mph (`1.34112` m/s) so a
   parked phone's drift isn't billed as distance; reported accuracy buckets
   into `DistanceStatus.GOOD` (≤ 10 m), `POOR` (≤ 30 m), or `WAITING`. See
-  "The Minimum Speed Defaults to 3 mph" in `decisions.md` for why the
+  "The Defaults a Fresh Install Starts On" in `decisions.md` for why the
   threshold sits at walking pace rather than near traffic speed.
 * `SimulatedDistanceProvider` — a scripted timeline of legs, so the whole
   UI can be exercised with no GPS hardware. Selected in Settings;
@@ -600,7 +600,7 @@ it doesn't earn its keep.
 
 * **Cheapest fix first** (`TIERED` only). A sweep takes a coarse fix
   (platform `FUSED`, else `NETWORK`, else `GPS`) every
-  `Settings.autoWatchSeconds`, default 60. GPS is powered up only when the
+  `Settings.autoWatchSeconds`, default 30. GPS is powered up only when the
   coarse fix cannot settle the question by itself:
 
   * it **disagrees** with the containment already believed, **cannot

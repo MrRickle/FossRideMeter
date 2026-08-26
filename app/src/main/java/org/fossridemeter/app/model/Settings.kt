@@ -51,15 +51,23 @@ data class Settings(
     val baseAmount: Double = 0.0,
     val minimumAmount: Double = 0.0,
     // How long, stationary, before a dwell period counts as a stop rather
-    // than just sitting at a light or in traffic.
-    val stopDetectionMinutes: Int = 5,
+    // than just sitting at a light or in traffic. Three minutes: long
+    // enough that no ordinary light or queue reaches it, short enough
+    // that a real wait at a door is charged at the stopped rate rather
+    // than the driving one.
+    val stopDetectionMinutes: Int = 3,
 
     // How often PlaceWatcher takes a coarse fix while watching for a
     // departure. This is the whole battery budget of auto-start: the app
     // is otherwise idle, so the poll interval is the cost. Arrivals cost
     // nothing extra - they're read off the fixes the running ride is
-    // already collecting.
-    val autoWatchSeconds: Int = 60,
+    // already collecting. It is the *idle* interval only: the first fix
+    // outside a place makes the crossing a candidate, and from there
+    // PlaceWatcher polls at CANDIDATE_POLL_SECONDS to confirm. So this
+    // number buys how quickly a departure is first suspected, and 30 s
+    // rather than 60 s halves the wait for it at the cost of twice the
+    // idle fixes.
+    val autoWatchSeconds: Int = 30,
 
     // How each of those checks gets its fix. Defaults to GPS: the
     // two-tier alternative saves real battery while parked but routinely
@@ -70,8 +78,11 @@ data class Settings(
     // After an automatic arrival pauses a ride, how long to wait before
     // committing it. The window exists so an arrival that turns out to be
     // a stop along the way can be undone by resuming, rather than being
-    // saved out from under the user.
-    val autoSaveGraceMinutes: Int = 5,
+    // saved out from under the user. Two minutes: the window is only
+    // useful for as long as the user is still near the vehicle to notice
+    // the notification, and a ride that has genuinely ended shouldn't sit
+    // uncommitted for five.
+    val autoSaveGraceMinutes: Int = 2,
 
     // A tone on start, pause, resume, save, and cancel. On by default:
     // the actions that most need announcing are the automatic ones, and

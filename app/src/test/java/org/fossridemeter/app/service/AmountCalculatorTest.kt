@@ -145,6 +145,23 @@ class AmountCalculatorTest {
         assertEquals(3.0, shown, 0.001)
     }
 
+    /**
+     * The three that govern automatic behaviour. Nothing converts these,
+     * so they can't go wrong the way a rate can — this is here because
+     * they are a deliberate set, chosen against each other and against
+     * how the app is actually driven, and a later edit to one of them
+     * should be a decision rather than a typo. See "The Defaults a Fresh
+     * Install Starts On" in docs/decisions.md.
+     */
+    @Test
+    fun theAutomaticBehaviourDefaultsAreTheOnesThatWereChosen() {
+        val defaults = Settings()
+
+        assertEquals(3, defaults.stopDetectionMinutes)
+        assertEquals(30, defaults.autoWatchSeconds)
+        assertEquals(2, defaults.autoSaveGraceMinutes)
+    }
+
     /** A ten-mile, half-hour ride on the defaults, as a sanity check. */
     @Test
     fun aTypicalRideOnTheDefaultsCostsATypicalAmount() {

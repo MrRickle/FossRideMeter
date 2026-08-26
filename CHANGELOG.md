@@ -8,11 +8,19 @@ the shape of things may still change between minor versions.
 
 ### Changed
 
-- **The minimum speed defaults to 3 mph** instead of 0. Below that speed
-  a GPS fix adds no distance, so a parked phone's drift is no longer
-  metered as travel. The threshold sits at walking pace so that a crawl
-  through a car park or a jam still bills its miles. An install that has
-  already set its own minimum speed is unaffected.
+- **New defaults for a fresh install.** None of these touch a ride
+  already saved, or an install that has set its own value.
+  - **Minimum speed: 3 mph** (was 0). Below that speed a GPS fix adds no
+    distance, so a parked phone's drift is no longer metered as travel.
+    The threshold sits at walking pace so a crawl through a car park or a
+    jam still bills its miles.
+  - **Stop detection: 3 minutes** (was 5), so a real wait at a door is
+    charged at the stopped rate. Still far longer than any light or queue.
+  - **Automatic watch: every 30 seconds** (was 60), so a departure is
+    noticed sooner. This is the idle poll only — a suspected crossing
+    already polls faster to confirm.
+  - **Automatic save grace: 2 minutes** (was 5), so a ride that has
+    genuinely ended doesn't sit uncommitted. Resuming still takes it back.
 
 ### Added
 

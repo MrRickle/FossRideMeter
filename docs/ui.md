@@ -651,7 +651,7 @@ never fires, which is exactly the failure the watch status line exists to
 make visible.
 
 Settings → **Automatic** has the tunables: how often to check for a
-departure (default 60 s), how long the grace window lasts (default 5 min),
+departure (default 30 s), how long the grace window lasts (default 2 min),
 and **Location Check Accuracy**:
 
 * **GPS every check** (default) — one real fix per check. A departure is

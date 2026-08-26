@@ -157,7 +157,7 @@ one-way door on the ride screen.
 ## Decision: Automatic Save Pauses First, Then Commits
 
 An arrival at an `autoSave` place does not save the ride. It pauses it,
-starts a grace window of `Settings.autoSaveGraceMinutes` (default 5), and
+starts a grace window of `Settings.autoSaveGraceMinutes` (default 2), and
 commits only when that elapses. Resuming — from the app or the
 notification's own button — takes it back.
 
@@ -988,7 +988,7 @@ so an amount could not be explained after the fact, which is the whole
 point of storing the rates on the ride. And `minimumSpeedMps` defaulted to
 0 at the time, so it would have done nothing at all until someone set a
 threshold they'd never been asked for. (That default is 3 mph as of
-2026-08-25 — see "The Minimum Speed Defaults to 3 mph". It doesn't revive
+2026-08-25 — see "The Defaults a Fresh Install Starts On". It doesn't revive
 this option: the first objection was the deciding one, and time billed
 against a speed the app never displays is still time that can't be
 explained.)
@@ -1177,7 +1177,7 @@ The exception is deliberately narrow: it covers combining with the Play
 services client libraries and nothing else, and grants no rights in those
 libraries themselves.
 
-## Decision: The Minimum Speed Defaults to 3 mph
+## Decision: The Defaults a Fresh Install Starts On
 
 `Settings.minimumSpeedMps` gates whether a GPS fix contributes distance
 at all: `GpsDistanceProvider` sees `speed >= minimumSpeedMps` and, when
@@ -1213,3 +1213,27 @@ the live screen and nothing else.
 pins the displayed figure, for the same reason the per-mile rate is
 pinned: this is another value stored in one unit and read in another, and
 that is exactly how the default rate came to be $1,287.48 a mile.
+
+### The three automatic-behaviour defaults, tightened at the same time
+
+They were picked before anyone had driven with them and were all on the
+generous side. Each is now what a season of use suggested:
+
+* **`stopDetectionMinutes` 5 → 3.** How long stationary before a dwell
+  becomes a `Stop` billed at the stopped rate. Five minutes missed real
+  waits at a door; three is still far longer than any light or queue.
+* **`autoWatchSeconds` 60 → 30.** The *idle* poll while watching for a
+  departure — the first fix outside a place makes the crossing a
+  candidate and `PlaceWatcher` then polls at `CANDIDATE_POLL_SECONDS`
+  (15 s) to confirm it. So this only buys how soon a departure is first
+  suspected: half the wait, for twice the idle fixes. Battery is the
+  whole reason this number exists, so it is the one of the three where
+  the cost of the change is ongoing rather than one-off.
+* **`autoSaveGraceMinutes` 5 → 2.** How long an automatic arrival sits
+  paused before committing. The window protects against the wrong
+  ending being made permanent, and it only does that while the user is
+  near enough to see the notification; past that it is a completed ride
+  left uncommitted.
+
+None of them touch a ride already saved, or an install that has set its
+own value — a written preference always beats a default.
