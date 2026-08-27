@@ -394,6 +394,30 @@ start from. Saving it writes the place and pulls that stop onto it. This
 is how a place inside a place gets drawn: the store is Home Depot, and the
 corner of it you keep stopping in becomes Home Depot Windows.
 
+### Checking a place against the world
+
+The editor's location field has **Paste** and **Copy** icons and a **Show
+on a map** button beneath it. That button hands the point to whatever maps
+app is installed, through a `geo:` URI (`util/MapLink.kt`) — a platform
+scheme rather than a Google one, so it ties the app to no particular map,
+embeds no maps SDK, needs no API key, and adds no permission. The
+coordinates appear twice in the URI deliberately: the pair after `geo:`
+positions the map, and the `q=` is what makes apps drop a *pin* instead of
+merely centring the area, which is the whole question when you are
+checking which side of a street a place sits on. With no maps app
+installed it falls back to the clipboard, the same way the donation links
+do.
+
+It reads the field rather than the saved place, because what is being
+checked is what has been typed — and it shares one `parseLatLng` with
+Save, so the two cannot disagree about what counts as a location. It is a
+labelled button rather than a third trailing icon: three of those squeezed
+the coordinates down to "37.776982, -122." and reading them is half of
+what the field is for.
+
+The other half of the round trip is unchanged: correct the location in the
+maps app, copy it, and Paste it back.
+
 Dialogs stack, so the place editor appears above whichever of them opened
 it, and closing it returns there.
 

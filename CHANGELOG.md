@@ -6,6 +6,16 @@ the shape of things may still change between minor versions.
 
 ## Unreleased
 
+### Added
+
+- **"Show on a map" in the place editor.** Opens the place's coordinates
+  in whatever maps app you have, with a pin on the point carrying the
+  place's name, so checking where a place really is no longer means
+  copying the location out by hand. It uses Android's standard `geo:`
+  link, so Google Maps, Organic Maps, OsmAnd and the rest all work and
+  none of them is required — and with no maps app installed it copies the
+  location instead.
+
 ### Fixed
 
 - **Renaming a place during a ride left the old name in the ride's stops

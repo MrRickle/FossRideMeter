@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
@@ -34,6 +35,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -49,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import android.content.ClipData
@@ -59,6 +62,7 @@ import org.fossridemeter.app.util.abbreviation
 import org.fossridemeter.app.util.distanceToUnit
 import org.fossridemeter.app.util.gpsAccuracyUnit
 import org.fossridemeter.app.util.unitToDistance
+import org.fossridemeter.app.util.openInMaps
 
 /**
  * Location and radius are free-text so coordinates can be pasted straight
@@ -111,6 +115,7 @@ fun PlaceEditDialog(
 
     val clipboard = LocalClipboard.current
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var showDeleteDialog by remember(place.id) { mutableStateOf(false) }
 
@@ -186,6 +191,40 @@ fun PlaceEditDialog(
                     }
                 )
 
+                // Hands the point to a maps app so it can be checked on
+                // the ground; the corrected coordinates come back
+                // through Paste. It reads the field rather than the
+                // saved place, because what is being checked is what is
+                // typed.
+                //
+                // A labelled button rather than a third trailing icon:
+                // three of them squeezed the coordinates down to
+                // "37.776982, -122." and being able to read them is half
+                // of what that field is for.
+                TextButton(
+                    onClick = {
+                        val point = parseLatLng(locationText)
+                        if (point == null) {
+                            locationError = true
+                        } else {
+                            openInMaps(
+                                context = context,
+                                latitude = point.first,
+                                longitude = point.second,
+                                label = name,
+                            )
+                        }
+                    }
+                ) {
+                    Icon(
+                        Icons.Default.Map,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("Show on a map")
+                }
+
                 Spacer(Modifier.height(8.dp))
 
                 OutlinedTextField(
@@ -229,15 +268,15 @@ fun PlaceEditDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val parts = locationText.split(",").map { it.trim() }
-                    val lat = parts.getOrNull(0)?.toDoubleOrNull()
-                    val lng = parts.getOrNull(1)?.toDoubleOrNull()
+                    val point = parseLatLng(locationText)
                     val enteredRadius = radiusText.toDoubleOrNull()
 
-                    if (lat == null || lng == null || parts.size != 2) {
+                    if (point == null) {
                         locationError = true
                         return@Button
                     }
+
+                    val (lat, lng) = point
                     if (enteredRadius == null || enteredRadius <= 0.0) {
                         radiusError = true
                         return@Button
@@ -305,4 +344,20 @@ fun PlaceEditDialog(
             onDismiss = { showDeleteDialog = false }
         )
     }
+}
+
+/**
+ * "lat, lng" as the location field accepts it, or null when it isn't
+ * that. Shared by Save and by the map button so the two can never
+ * disagree about what counts as a location.
+ */
+private fun parseLatLng(text: String): Pair<Double, Double>? {
+
+    val parts = text.split(",").map { it.trim() }
+    if (parts.size != 2) return null
+
+    val latitude = parts[0].toDoubleOrNull() ?: return null
+    val longitude = parts[1].toDoubleOrNull() ?: return null
+
+    return latitude to longitude
 }
