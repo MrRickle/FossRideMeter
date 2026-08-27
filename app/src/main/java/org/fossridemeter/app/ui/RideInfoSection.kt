@@ -119,14 +119,23 @@ fun RideInfoSection(
 
     val endPlace = info.endPlaceId?.let(places::get)
 
+    // Each stop's name comes from the places map by id, exactly as the
+    // start and end places above do, and falls back to the name the ride
+    // carries only when the place itself is gone. Reading the carried
+    // name first is what left a running ride's stops showing the old
+    // name after a rename while the two ends of the same line updated.
+    val stopNames = info.stopPlaceNames.mapIndexed { index, carried ->
+        info.stopPlaceIds.getOrNull(index)?.let(places::get)?.name ?: carried
+    }
+
     InfoRow(
         "Stops",
-        if (info.stopPlaceNames.isEmpty()) {
+        if (stopNames.isEmpty()) {
             "-"
         } else {
             buildPlacesSummary(
                 startPlaceName = startPlace?.name ?: info.startPlaceName,
-                stopPlaceNames = info.stopPlaceNames,
+                stopPlaceNames = stopNames,
                 endPlaceName = endPlace?.name ?: info.endPlaceName,
             )
         },

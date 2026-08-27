@@ -403,14 +403,18 @@ class RideTrackingService : Service() {
 
         val stopDao = AppRepository.getStopDao(this)
         val stops = stopDao.getByRideId(rideId)
-        val stopPlaceNames = stops.mapNotNull { stop ->
-            stop.placeId?.let { placeDao.getById(it)?.name }
+        // Ids and names in one pass, so the two lists cannot end up
+        // describing different stops: a stop whose place row has since
+        // been deleted has to drop out of both or neither.
+        val stopPlaces = stops.mapNotNull { stop ->
+            stop.placeId?.let { id -> placeDao.getById(id)?.let { id to it.name } }
         }
 
         val restored = tracker.restore(
             record = record,
             stops = stops,
-            stopPlaceNames = stopPlaceNames,
+            stopPlaceIds = stopPlaces.map { it.first },
+            stopPlaceNames = stopPlaces.map { it.second },
             startPlaceName = record.startPlaceId?.let { placeDao.getById(it)?.name },
             endPlaceName = record.endPlaceId?.let { placeDao.getById(it)?.name },
             settings = settingsRepository.settings.first(),

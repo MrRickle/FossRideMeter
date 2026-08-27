@@ -64,6 +64,10 @@ data class RideInfo(
     val startPlaceName: String?,
     val endPlaceId: String?,
     val endPlaceName: String?,
+    // Index-aligned with stopPlaceNames. The id is what the screen
+    // resolves a current name through; the name is what it falls back to
+    // when the place is gone.
+    val stopPlaceIds: List<String?>,
     val stopPlaceNames: List<String?>,
     val startLocation: RideLocation?,
     val endLocation: RideLocation?,
@@ -95,10 +99,12 @@ fun Ride.toRideInfo(settings: Settings): RideInfo =
         endPlaceId = endPlaceId,
         endPlaceName = endPlaceName,
         // Carried on the ride itself as it goes - RideMeter appends each
-        // stop's place name as it detects it. Collapsed the same way a
-        // saved ride's stops are, so sitting twice in the same lot reads
-        // as one stop live and still reads as one afterwards.
-        stopPlaceNames = stopPlaceNames.collapseAdjacent(),
+        // stop's place as it detects it. Collapsed by *id*, the same way
+        // a saved ride's stops are grouped, so sitting twice in the same
+        // lot reads as one stop live and still reads as one afterwards -
+        // and two different places that happen to share a name stay two.
+        stopPlaceIds = collapsedStopIndices().map { stopPlaceIds.getOrNull(it) },
+        stopPlaceNames = collapsedStopIndices().map { stopPlaceNames.getOrNull(it) },
         startLocation = startLocation,
         endLocation = endLocation,
         perMeterRate = settings.perMeterRate,
@@ -136,6 +142,7 @@ fun RideRecord.toRideInfo(
         // new name here without rewriting any ride. Consecutive stops at
         // one place are one entry here (see StopGroup); the rows behind
         // them are untouched.
+        stopPlaceIds = stops.groupConsecutiveByPlace().map { it.placeId },
         stopPlaceNames = stops
             .groupConsecutiveByPlace()
             .map { group -> group.placeId?.let(places::get)?.name },
@@ -147,3 +154,16 @@ fun RideRecord.toRideInfo(
         minimumAmount = minimumAmount,
         distanceProvider = distanceProvider,
     )
+
+/**
+ * The indices of a live ride's stops that survive collapsing runs of
+ * consecutive stops at one place into a single entry.
+ *
+ * Taken as indices rather than as a filtered list of names, because the
+ * ids and the names have to be collapsed identically or they stop
+ * describing the same stops.
+ */
+private fun Ride.collapsedStopIndices(): List<Int> =
+    stopPlaceIds.indices.filter { index ->
+        index == 0 || stopPlaceIds[index] != stopPlaceIds[index - 1]
+    }

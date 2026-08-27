@@ -53,10 +53,17 @@ data class Ride(
     val startPlaceName: String? = null,
     val endPlaceId: String? = null,
     val endPlaceName: String? = null,
-    // Place names for the stops detected so far, in order, for live
-    // display. The Stop rows themselves (location, timing, sequence) are
-    // already in the database - written as each stop was detected - and
-    // aren't carried here.
+    // The stops detected so far, in order, for live display: their place
+    // ids and the names those places had when each stop was recorded.
+    // The Stop rows themselves (location, timing, sequence) are already
+    // in the database - written as each stop was detected - and aren't
+    // carried here.
+    //
+    // The id is what the display resolves through, so renaming a place
+    // mid-ride renames it on the live screen too; the name is the
+    // fallback for a place that has since been deleted. Both lists are
+    // index-aligned and must be edited together.
+    val stopPlaceIds: List<String> = emptyList(),
     val stopPlaceNames: List<String> = emptyList(),
 ) {
     companion object {

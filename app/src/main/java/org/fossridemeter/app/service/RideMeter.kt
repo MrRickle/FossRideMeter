@@ -351,6 +351,7 @@ class RideMeter(
     fun restore(
         record: RideRecord,
         stops: List<Stop>,
+        stopPlaceIds: List<String>,
         stopPlaceNames: List<String>,
         startPlaceName: String?,
         endPlaceName: String?,
@@ -392,6 +393,7 @@ class RideMeter(
             meters = record.meters,
             elapsedSeconds = record.elapsedSeconds,
             manualAmount = record.manualAmount,
+            stopPlaceIds = stopPlaceIds,
             stopPlaceNames = stopPlaceNames,
         )
 
@@ -616,7 +618,8 @@ class RideMeter(
             trailing.placeId?.let { touchedPlaceIds.add(it) }
 
             _ride.value = _ride.value.copy(
-                stopPlaceNames = _ride.value.stopPlaceNames.dropLast(1)
+                stopPlaceIds = _ride.value.stopPlaceIds.dropLast(1),
+                stopPlaceNames = _ride.value.stopPlaceNames.dropLast(1),
             )
         }
 
@@ -1098,6 +1101,7 @@ class RideMeter(
         // that recording the stop hadn't created anyway. save() replaces
         // it with a real resolve of wherever the ride is at that point.
         _ride.value = _ride.value.copy(
+            stopPlaceIds = _ride.value.stopPlaceIds + place.id,
             stopPlaceNames = _ride.value.stopPlaceNames + place.name,
             endPlaceId = place.id,
             endPlaceName = place.name,

@@ -83,12 +83,3 @@ fun List<Stop>.groupConsecutiveByPlace(): List<StopGroup> {
 
     return grouped.map { stops -> StopGroup(stops.first().placeId, stops.toList()) }
 }
-
-/**
- * The same collapse for a live ride, which carries place *names* as it
- * goes rather than ids (RideMeter appends one per stop). Names are all
- * there is to compare there, and it agrees with the id-based grouping in
- * every case that isn't two distinct places sharing a name.
- */
-fun List<String>.collapseAdjacent(): List<String> =
-    filterIndexed { index, name -> index == 0 || name != this[index - 1] }

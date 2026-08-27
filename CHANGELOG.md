@@ -8,6 +8,11 @@ the shape of things may still change between minor versions.
 
 ### Fixed
 
+- **Renaming a place during a ride left the old name in the ride's stops
+  line.** The start and end places updated and the stops between them did
+  not, because a running ride showed the names its stops were recorded
+  under rather than looking them up. A saved ride was never affected.
+
 - **The About screen never showed the version.** It listed the build's
   commit hash and time, which are for tracing a build back to source,
   and left out the number anyone would actually go there to read. Every
