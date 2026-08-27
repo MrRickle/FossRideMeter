@@ -153,6 +153,14 @@ Version, git stamp, build time, copyright, and — when any is configured —
 a **Support development** section listing the ways to donate: PayPal,
 Venmo, an on-chain Bitcoin address, and a Lightning address.
 
+The version leads, on its own line, with the git stamp and build time a
+size smaller underneath: "which version am I running" is the question a
+user brings to this screen, while tracing an APK back to a commit is a
+question for whoever *reads* their bug report. That ordering had to be
+fixed rather than chosen — `AppVersion.versionName` existed from the
+start and nothing ever called it, so 0.1.0 through 0.1.3 all shipped
+showing a commit hash and a date and no version at all.
+
 Every handle and address lives in `util/Donations.kt` and nowhere else. A
 blank one is dropped rather than shown, and with all of them blank the
 section renders nothing at all, divider included — a build with no

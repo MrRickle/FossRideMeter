@@ -4,6 +4,15 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
+## Unreleased
+
+### Fixed
+
+- **The About screen never showed the version.** It listed the build's
+  commit hash and time, which are for tracing a build back to source,
+  and left out the number anyone would actually go there to read. Every
+  release up to 0.1.3 shipped this way.
+
 ## 0.1.3 — 2026-08-26
 
 ### Fixed

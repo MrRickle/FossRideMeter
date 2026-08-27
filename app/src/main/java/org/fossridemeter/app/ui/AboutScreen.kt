@@ -49,8 +49,25 @@ fun AboutScreen() {
 
         Spacer(Modifier.height(16.dp))
 
+        // The version is what a user is looking for - "which one am I
+        // running" - and it was the one thing this screen didn't show:
+        // AppVersion.versionName existed and nothing called it, so every
+        // release up to 0.1.3 showed a commit hash and a date and no
+        // version at all.
         Text(
-            text = AppVersion.gitVersion + "-" + AppVersion.buildTime)
+            text = "Version ${AppVersion.versionName}",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Spacer(Modifier.height(4.dp))
+
+        // The build stamp stays, one step quieter. It is for tracing an
+        // installed APK back to a commit, which matters to whoever is
+        // reading a bug report rather than to whoever is filing it.
+        Text(
+            text = "${AppVersion.gitVersion} · ${AppVersion.buildTime}",
+            style = MaterialTheme.typography.bodySmall
+        )
 
         Spacer(Modifier.height(12.dp))
 
