@@ -31,7 +31,7 @@ JVM tests: `MigrationConfigTest` (every version from the baseline up has a migra
 
 Release builds are **minified** (R8 + resource shrinking, 14.1 MB → 1.9 MB). `app/proguard-rules.pro` only keeps what the libraries' own consumer rules don't: enum constant names under `org.fossridemeter.app.model`, because those are persisted by `.name` in DataStore, in a Room column via `Converters`, and in exported JSON — renaming one is a data format change that crashes an existing install at launch. Keep `app/build/outputs/mapping/release/mapping.txt` for any build handed to anyone.
 
-`versionName` is `0.1.3`; `BuildConfig.GIT_VERSION` (short hash, `-dirty` suffix when the tree is dirty) and `BuildConfig.BUILD_TIME` (epoch millis, rendered in the device's local timezone by `AppVersion.buildTime`) are stamped at configure time and shown on the About screen so an installed build traces back to a commit. Because these run `git` during configuration, changing the working tree's dirty state invalidates the configuration cache.
+`versionName` is `0.1.4`; `BuildConfig.GIT_VERSION` (short hash, `-dirty` suffix when the tree is dirty) and `BuildConfig.BUILD_TIME` (epoch millis, rendered in the device's local timezone by `AppVersion.buildTime`) are stamped at configure time and shown on the About screen so an installed build traces back to a commit. Because these run `git` during configuration, changing the working tree's dirty state invalidates the configuration cache.
 
 Every `.kt` file carries the GPL SPDX header from `license-header.txt`. `./add_license_headers.sh` adds it to any file missing one (idempotent) — run it after adding new source files.
 
