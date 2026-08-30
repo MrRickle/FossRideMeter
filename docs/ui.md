@@ -474,6 +474,33 @@ Live settings are safe to show as the ride's rates because Settings is
 locked for the whole of any live ride (`RUNNING || PAUSED`), so the rates
 on screen are necessarily the ones being metered.
 
+## Sorting the tables
+
+Every column header on Rides and Places sorts that column. Tapping a new
+column sorts it ascending; tapping the one already sorted reverses it,
+and the sorted column carries a ▲ or ▼ so the direction is on screen
+rather than inferred. There is no third tap back to the loaded order —
+a state most people never find is worse than two they can predict, and
+the loaded order (newest ride first) is one tap away on Start Time.
+
+`SortableHeaderCell` and `sortedByColumn` in `ui/TableSort.kt` are
+shared by both screens; each screen supplies its own enum of columns and
+one `when` that maps a column to a `Comparator`. The key is an enum
+rather than the header's label so that renaming a column cannot quietly
+unhook its comparator — the `when` is exhaustive and stops compiling
+instead. That is not hypothetical: "Per Hour Stopped" was renamed to
+"Per Hour While Stopped" the week this was written.
+
+Sorting happens in the UI rather than in the query because several
+columns are not columns. A ride's start place is a name in another
+table, its stop count is the *grouped* count — consecutive stops at one
+place are one visit here as everywhere else — and its duration is
+arithmetic. A table that could sort only the stored fields would be the
+more confusing thing. The place and location columns sort by what is on
+screen: place columns by the resolved name rather than the stored id,
+which would order random strings, and locations by latitude then
+longitude, so rows near each other land together.
+
 ## Selecting rows
 
 The Rides and Places tables both support multi-select, using the standard

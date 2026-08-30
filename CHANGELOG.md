@@ -19,6 +19,11 @@ the shape of things may still change between minor versions.
 
 ### Added
 
+- **Tap any column header on Rides or Places to sort by it**, and tap it
+  again to reverse. The sorted column shows ▲ or ▼. Every column sorts,
+  including the ones that are worked out rather than stored — start and
+  end place sort by name, stops by how many visits the ride made.
+
 - **You are told when the app was stopped during a ride**, with a sound
   and a heads-up notification: what stopped it, how long it was gone, and
   whether the ride is metering again. Being killed mid-ride used to be

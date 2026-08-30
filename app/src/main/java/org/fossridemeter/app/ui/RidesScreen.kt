@@ -36,6 +36,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,6 +109,74 @@ fun RidesScreen(
         )
     }
 
+    // Enums survive a rotation on their own, which a data class holding
+    // both halves would need a Saver for.
+    var sortedBy by rememberSaveable { mutableStateOf<RideSort?>(null) }
+    var ascending by rememberSaveable { mutableStateOf(true) }
+
+    val sorted = remember(rides, places, stopsByRide, sortedBy, ascending) {
+        rides.sortedByColumn(sortedBy, ascending) { key ->
+            when (key) {
+                RideSort.Name ->
+                    compareBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+
+                RideSort.Amount -> compareBy { it.displayAmount }
+                RideSort.Distance -> compareBy { it.meters }
+
+                // The place columns sort by what is on screen - the
+                // place's name - not by the id stored on the ride, which
+                // would be an ordering of random strings.
+                RideSort.StartPlace ->
+                    compareBy(String.CASE_INSENSITIVE_ORDER) {
+                        it.startPlaceId?.let(places::get)?.name ?: ""
+                    }
+
+                RideSort.EndPlace ->
+                    compareBy(String.CASE_INSENSITIVE_ORDER) {
+                        it.endPlaceId?.let(places::get)?.name ?: ""
+                    }
+
+                // How many places were stopped at, grouped the way the
+                // column shows them, rather than how many Stop rows
+                // there are - sitting twice in one car park reads as one
+                // stop there and sorts as one here.
+                RideSort.Stops ->
+                    compareBy {
+                        stopsByRide[it.id].orEmpty()
+                            .groupConsecutiveByPlace().size
+                    }
+
+                RideSort.Duration -> compareBy { it.elapsedSeconds }
+                RideSort.Stopped -> compareBy { it.stoppedSeconds }
+                RideSort.StartTime -> compareBy { it.startTime }
+                RideSort.EndTime -> compareBy { it.endTime }
+                RideSort.Rate -> compareBy { it.perMeterRate }
+                RideSort.HourlyRate -> compareBy { it.hourlyRate }
+                RideSort.StoppedRate -> compareBy { it.stoppedHourlyRate ?: 0.0 }
+                RideSort.Base -> compareBy { it.baseAmount }
+                RideSort.Minimum -> compareBy { it.minimumAmount }
+                RideSort.OriginalAmount -> compareBy { it.calculatedAmount }
+
+                // Same as the places column: latitude then longitude, so
+                // rides that started near each other land together.
+                RideSort.StartLocation ->
+                    compareBy<RideRecord> { it.startLocation?.latitude ?: 0.0 }
+                        .thenBy { it.startLocation?.longitude ?: 0.0 }
+
+                RideSort.EndLocation ->
+                    compareBy<RideRecord> { it.endLocation?.latitude ?: 0.0 }
+                        .thenBy { it.endLocation?.longitude ?: 0.0 }
+
+                RideSort.Provider -> compareBy { it.distanceProvider.name }
+            }
+        }
+    }
+
+    val onSort: (RideSort) -> Unit = { key ->
+        ascending = if (key == sortedBy) !ascending else true
+        sortedBy = key
+    }
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -125,31 +194,31 @@ fun RidesScreen(
                 .padding(vertical = 4.dp)
         ) {
 
-            HeaderCell("Name", NameWidth)
-            HeaderCell("Amount", AmountWidth)
-            HeaderCell("Distance", DistanceWidth)
-            HeaderCell("Start Place", StartWidth)
-            HeaderCell("Stops", StopsWidth)
-            HeaderCell("End Place", EndWidth)
-            HeaderCell("Duration", DurationWidth)
-            HeaderCell("Stopped", DurationWidth)
-            HeaderCell("Start Time", TimeWidth)
-            HeaderCell("End Time", TimeWidth)
-            HeaderCell("Rate", RateWidth)
-            HeaderCell("Per Hour", RateWidth)
-            HeaderCell("Per Hour While Stopped", RateWidth)
-            HeaderCell("Base", BaseWidth)
-            HeaderCell("Minimum", MinWidth)
-            HeaderCell("Original Amount", AmountWidth)
-            HeaderCell("Start Location", LocationWidth)
-            HeaderCell("End Location", LocationWidth)
-            HeaderCell("GPS Provider", ProviderWidth)
+            SortableHeaderCell("Name", NameWidth, RideSort.Name, sortedBy, ascending, onSort)
+            SortableHeaderCell("Amount", AmountWidth, RideSort.Amount, sortedBy, ascending, onSort)
+            SortableHeaderCell("Distance", DistanceWidth, RideSort.Distance, sortedBy, ascending, onSort)
+            SortableHeaderCell("Start Place", StartWidth, RideSort.StartPlace, sortedBy, ascending, onSort)
+            SortableHeaderCell("Stops", StopsWidth, RideSort.Stops, sortedBy, ascending, onSort)
+            SortableHeaderCell("End Place", EndWidth, RideSort.EndPlace, sortedBy, ascending, onSort)
+            SortableHeaderCell("Duration", DurationWidth, RideSort.Duration, sortedBy, ascending, onSort)
+            SortableHeaderCell("Stopped", DurationWidth, RideSort.Stopped, sortedBy, ascending, onSort)
+            SortableHeaderCell("Start Time", TimeWidth, RideSort.StartTime, sortedBy, ascending, onSort)
+            SortableHeaderCell("End Time", TimeWidth, RideSort.EndTime, sortedBy, ascending, onSort)
+            SortableHeaderCell("Rate", RateWidth, RideSort.Rate, sortedBy, ascending, onSort)
+            SortableHeaderCell("Per Hour", RateWidth, RideSort.HourlyRate, sortedBy, ascending, onSort)
+            SortableHeaderCell("Per Hour While Stopped", RateWidth, RideSort.StoppedRate, sortedBy, ascending, onSort)
+            SortableHeaderCell("Base", BaseWidth, RideSort.Base, sortedBy, ascending, onSort)
+            SortableHeaderCell("Minimum", MinWidth, RideSort.Minimum, sortedBy, ascending, onSort)
+            SortableHeaderCell("Original Amount", AmountWidth, RideSort.OriginalAmount, sortedBy, ascending, onSort)
+            SortableHeaderCell("Start Location", LocationWidth, RideSort.StartLocation, sortedBy, ascending, onSort)
+            SortableHeaderCell("End Location", LocationWidth, RideSort.EndLocation, sortedBy, ascending, onSort)
+            SortableHeaderCell("GPS Provider", ProviderWidth, RideSort.Provider, sortedBy, ascending, onSort)
 
         }
 
         LazyColumn {
 
-            items(rides) { ride ->
+            items(sorted) { ride ->
 
                 Row(
                     modifier = Modifier
@@ -337,23 +406,6 @@ private fun RidesRow(
     }
 }
 
-@Composable
-private fun HeaderCell(
-    text: String,
-    width: Dp
-) {
-
-    Text(
-        text = text,
-        modifier = Modifier
-            .width(width)
-            .padding(4.dp),
-        style = MaterialTheme.typography.titleSmall,
-        maxLines = 1,
-        softWrap = false,
-        overflow = TextOverflow.Ellipsis,
-    )
-}
 
 @Composable
 private fun DataCell(
@@ -370,4 +422,12 @@ private fun DataCell(
         softWrap = false,
         overflow = TextOverflow.Ellipsis,
     )
+}
+
+/** The Rides table's columns, in the order they are shown. */
+private enum class RideSort {
+    Name, Amount, Distance, StartPlace, Stops, EndPlace,
+    Duration, Stopped, StartTime, EndTime,
+    Rate, HourlyRate, StoppedRate, Base, Minimum, OriginalAmount,
+    StartLocation, EndLocation, Provider,
 }

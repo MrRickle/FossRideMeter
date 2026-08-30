@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -75,6 +76,40 @@ fun PlacesScreen(
 
     val horizontalScroll = rememberScrollState()
 
+    // Enums survive a rotation on their own, which a data class holding
+    // both halves would need a Saver for.
+    var sortedBy by rememberSaveable { mutableStateOf<PlaceSort?>(null) }
+    var ascending by rememberSaveable { mutableStateOf(true) }
+
+    val sorted = places.sortedByColumn(sortedBy, ascending) { key ->
+        when (key) {
+            PlaceSort.Name ->
+                compareBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+
+            // By latitude then longitude: neither alone is an order
+            // anyone means, but together they group places that are
+            // near each other, which is what looking down this column
+            // is for.
+            PlaceSort.Location ->
+                compareBy<Place> { it.latitude }.thenBy { it.longitude }
+
+            PlaceSort.Radius -> compareBy { it.radiusMeters }
+            PlaceSort.Named -> compareBy { it.isNamed }
+            PlaceSort.Locked -> compareBy { it.locationLocked }
+
+            // Places that do something automatic first when descending,
+            // which is the question this column is usually asked.
+            PlaceSort.Auto ->
+                compareBy<Place> { it.autoStart || it.autoSave }
+                    .thenBy { it.autoStart }
+        }
+    }
+
+    val onSort: (PlaceSort) -> Unit = { key ->
+        ascending = if (key == sortedBy) !ascending else true
+        sortedBy = key
+    }
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -92,17 +127,17 @@ fun PlacesScreen(
                 .padding(vertical = 4.dp)
         ) {
 
-            HeaderCell("Name", NameWidth)
-            HeaderCell("Location", LocationWidth)
-            HeaderCell("Radius", RadiusWidth)
-            HeaderCell("Named", NamedWidth)
-            HeaderCell("Locked", LockedWidth)
-            HeaderCell("Auto", AutoWidth)
+            SortableHeaderCell("Name", NameWidth, PlaceSort.Name, sortedBy, ascending, onSort)
+            SortableHeaderCell("Location", LocationWidth, PlaceSort.Location, sortedBy, ascending, onSort)
+            SortableHeaderCell("Radius", RadiusWidth, PlaceSort.Radius, sortedBy, ascending, onSort)
+            SortableHeaderCell("Named", NamedWidth, PlaceSort.Named, sortedBy, ascending, onSort)
+            SortableHeaderCell("Locked", LockedWidth, PlaceSort.Locked, sortedBy, ascending, onSort)
+            SortableHeaderCell("Auto", AutoWidth, PlaceSort.Auto, sortedBy, ascending, onSort)
         }
 
         LazyColumn {
 
-            items(places) { place ->
+            items(sorted) { place ->
 
                 Row(
                     modifier = Modifier
@@ -208,20 +243,6 @@ private fun PlaceRow(
     }
 }
 
-@Composable
-private fun HeaderCell(
-    text: String,
-    width: Dp
-) {
-
-    Text(
-        text = text,
-        modifier = Modifier
-            .width(width)
-            .padding(4.dp),
-        style = MaterialTheme.typography.titleSmall
-    )
-}
 
 @Composable
 private fun DataCell(
@@ -235,4 +256,9 @@ private fun DataCell(
             .width(width)
             .padding(4.dp)
     )
+}
+
+/** The Places table's columns, in the order they are shown. */
+private enum class PlaceSort {
+    Name, Location, Radius, Named, Locked, Auto
 }
