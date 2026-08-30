@@ -23,6 +23,7 @@
 package org.fossridemeter.app.data
 
 import android.content.Context
+import org.fossridemeter.app.model.RideStatus
 
 /**
  * The id of the ride currently being metered, kept outside the process
@@ -36,6 +37,11 @@ import android.content.Context
  * cancelled, so anything still here at startup is a ride that was
  * interrupted rather than finished.
  *
+ * It carries the ride's *status* too, so the ride can come back doing
+ * what it was doing rather than always coming back paused. The row
+ * cannot answer that - RideRecord has no status - and by the time
+ * anyone asks, the process that knew is gone.
+ *
  * SharedPreferences rather than the settings DataStore: this is not a
  * setting, nobody edits it, and it has to be readable at service create
  * before anything else is ready. Writes use commit() - the whole value of
@@ -48,18 +54,46 @@ class LiveRideStore(context: Context) {
     private val prefs =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    fun markLive(rideId: String) {
-        prefs.edit().putString(KEY_RIDE_ID, rideId).commit()
+    fun markLive(rideId: String, status: RideStatus) {
+        prefs.edit()
+            .putString(KEY_RIDE_ID, rideId)
+            .putString(KEY_STATUS, status.name)
+            .commit()
+    }
+
+    /**
+     * Records that the live ride changed state, so a process killed
+     * later comes back doing what it was doing.
+     *
+     * Written on pause and resume only - both rare - rather than on the
+     * persist tick, because commit() is a synchronous disk write and the
+     * status is the only part that changes without the row changing.
+     */
+    fun markStatus(status: RideStatus) {
+        if (liveRideId() == null) return
+        prefs.edit().putString(KEY_STATUS, status.name).commit()
     }
 
     fun clear() {
-        prefs.edit().remove(KEY_RIDE_ID).commit()
+        prefs.edit().remove(KEY_RIDE_ID).remove(KEY_STATUS).commit()
     }
 
     fun liveRideId(): String? = prefs.getString(KEY_RIDE_ID, null)
 
+    /**
+     * What the interrupted ride was doing when the process died, or null
+     * if it was marked by a build that didn't record one. PAUSED is the
+     * safe reading of null - it is what every interrupted ride used to
+     * come back as.
+     */
+    fun liveRideStatus(): RideStatus? =
+        prefs.getString(KEY_STATUS, null)?.let { name ->
+            RideStatus.entries.firstOrNull { it.name == name }
+        }
+
     private companion object {
         const val PREFS = "live_ride"
         const val KEY_RIDE_ID = "ride_id"
+        const val KEY_STATUS = "status"
     }
 }

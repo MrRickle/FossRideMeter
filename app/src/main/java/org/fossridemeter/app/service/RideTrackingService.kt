@@ -222,6 +222,11 @@ class RideTrackingService : Service() {
         private const val CHANNEL_ID = "ride_tracking"
         private const val NOTIFICATION_ID = 1
 
+        // The interruption alert, on its own id so it sits beside the
+        // ongoing ride notification rather than replacing it.
+        private const val ALERT_NOTIFICATION_ID = 2
+        private const val ALERT_CHANNEL_ID = "ride_alerts"
+
         // Notification actions, so the grace window after an automatic
         // arrival can be answered without opening the app - which is the
         // point of it being automatic.
@@ -410,6 +415,11 @@ class RideTrackingService : Service() {
             stop.placeId?.let { id -> placeDao.getById(id)?.let { id to it.name } }
         }
 
+        // What it was doing when the process died. A marker written by a
+        // build that didn't record one reads as PAUSED, which is what
+        // every interrupted ride used to come back as.
+        val wasRunning = liveRideStore.liveRideStatus() == RideStatus.RUNNING
+
         val restored = tracker.restore(
             record = record,
             stops = stops,
@@ -418,16 +428,18 @@ class RideTrackingService : Service() {
             startPlaceName = record.startPlaceId?.let { placeDao.getById(it)?.name },
             endPlaceName = record.endPlaceId?.let { placeDao.getById(it)?.name },
             settings = settingsRepository.settings.first(),
-        )
-
-        if (!restored) return
+            wasRunning = wasRunning,
+        ) ?: return
 
         EventLog.log(
             "RideTrackingService",
             "Restored interrupted ride: started ${record.startTime}, " +
                 "${record.meters}m over ${record.elapsedSeconds}s, " +
-                "${stops.size} stop(s) - paused, waiting on the user"
+                "${stops.size} stop(s) - was ${if (wasRunning) "RUNNING" else "PAUSED"}, " +
+                "gone ${restored.gapMillis / 1000}s, back as ${restored.status}"
         )
+
+        announceInterruption(restored)
 
         reconcileWatching()
         refreshNotification()
@@ -846,13 +858,115 @@ class RideTrackingService : Service() {
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Ride Tracking",
-            NotificationManager.IMPORTANCE_LOW
-        )
+
         val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(channel)
+
+        manager.createNotificationChannel(
+            NotificationChannel(
+                CHANNEL_ID,
+                "Ride Tracking",
+                NotificationManager.IMPORTANCE_LOW
+            )
+        )
+
+        // Deliberately loud, and a separate channel so it can be:
+        // the ongoing notification is IMPORTANCE_LOW because it is
+        // there for the whole ride and must not nag, while this one
+        // fires once and reports that the app was killed out from under
+        // a ride. The user was not told at the time - nobody is - so
+        // being told now, with sound, is the whole point.
+        manager.createNotificationChannel(
+            NotificationChannel(
+                ALERT_CHANNEL_ID,
+                "Ride interrupted",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description =
+                    "Fires when the app was stopped by the system during a ride."
+                enableVibration(true)
+            }
+        )
+    }
+
+    /**
+     * Says out loud that the app was killed during a ride, how long it
+     * was gone, and what the ride is doing now.
+     *
+     * The process dying mid-ride is silent by nature: the notification
+     * goes with it, the bubble goes with it, and the phone in a pocket
+     * shows nothing. Coming back quietly is how a ride ends up short by
+     * however long nobody noticed.
+     */
+    private fun announceInterruption(restored: RideMeter.Restored) {
+
+        val awayFor = formatGap(restored.gapMillis)
+        val reason = ExitReasons.mostRecentReason(this)
+
+        val what = when {
+            restored.status == RideStatus.RUNNING ->
+                "Metering again. The $awayFor it was gone counts as ride time; " +
+                    "the distance driven in it could not be measured."
+
+            restored.wasRunning ->
+                "It was running, but $awayFor is too long to assume it still is. " +
+                    "The ride is paused - resume it or save it."
+
+            else ->
+                "The ride was paused and still is."
+        }
+
+        val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("FossRideMeter was stopped after $awayFor")
+            .setContentText(what)
+            .setStyle(
+                NotificationCompat.BigTextStyle().bigText(
+                    listOfNotNull(
+                        reason?.let { "Stopped by: $it" },
+                        "Away for: $awayFor",
+                        what,
+                    ).joinToString("\n")
+                )
+            )
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ERROR)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true)
+            .setContentIntent(
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    Intent(this, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    },
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+            )
+            .build()
+
+        // The noise comes from the channel: IMPORTANCE_HIGH with
+        // DEFAULT_ALL is sound, vibration and a heads-up banner, and it
+        // is the platform's way of being loud - so it still obeys Do Not
+        // Disturb and whatever the user has set for this channel. The
+        // ongoing ride notification is IMPORTANCE_LOW and silent, which
+        // is why being killed mid-ride otherwise announces nothing.
+        getSystemService(NotificationManager::class.java)
+            .notify(ALERT_NOTIFICATION_ID, notification)
+    }
+
+    /** "4 min 12 s", "3 h 5 min" - short enough for a notification title. */
+    private fun formatGap(millis: Long): String {
+
+        val seconds = millis / 1000
+        val minutes = seconds / 60
+        val hours = minutes / 60
+
+        return when {
+            hours > 0 -> "$hours h ${minutes % 60} min"
+            minutes > 0 -> "$minutes min ${seconds % 60} s"
+            else -> "$seconds s"
+        }
     }
 
     fun start(settings: Settings) {

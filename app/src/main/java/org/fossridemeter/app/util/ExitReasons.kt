@@ -84,6 +84,27 @@ object ExitReasons {
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
+    /**
+     * The newest exit's reason in a few words, for telling the user why
+     * the app vanished - "LOW MEMORY (system reclaimed it)" and the
+     * like. Null before API 30, or when the system has kept no record.
+     *
+     * Deliberately the same wording the event log uses, so the
+     * notification and the log agree.
+     */
+    fun mostRecentReason(context: Context): String? {
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null
+
+        val manager = context.getSystemService(ActivityManager::class.java) ?: return null
+
+        return runCatching {
+            manager.getHistoricalProcessExitReasons(context.packageName, 0, 1)
+                .maxByOrNull { it.timestamp }
+                ?.let { reasonName(it.reason) }
+        }.getOrNull()
+    }
+
     private fun logExits(context: Context) {
 
         val manager = context.getSystemService(ActivityManager::class.java) ?: return

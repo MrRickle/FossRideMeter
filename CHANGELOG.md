@@ -6,6 +6,23 @@ the shape of things may still change between minor versions.
 
 ## Unreleased
 
+### Changed
+
+- **A ride interrupted by the system now carries on where it left off.**
+  If the app is killed mid-ride — for memory, usually — it comes back
+  metering rather than paused, and the time it was gone counts as ride
+  time. Distance during the gap cannot be recovered, because nothing was
+  measuring. A gap longer than 15 minutes still comes back paused, since
+  by then the vehicle may have been parked for hours.
+
+### Added
+
+- **You are told when the app was stopped during a ride**, with a sound
+  and a heads-up notification: what stopped it, how long it was gone, and
+  whether the ride is metering again. Being killed mid-ride used to be
+  silent — the notification dies with the process — so the first sign was
+  a ride that had quietly stopped counting.
+
 ### Fixed
 
 - **Pressing Back could crash the app while it was quitting.** If the

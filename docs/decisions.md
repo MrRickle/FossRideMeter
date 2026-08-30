@@ -742,7 +742,7 @@ The user-facing equivalent is JSON export/import through the Storage
 Access Framework, which is portable, inspectable, and doesn't depend on
 the schema version matching.
 
-## Decision: An Interrupted Ride Comes Back Paused
+## Decision: An Interrupted Ride Comes Back Paused *(superseded)*
 
 The system reclaims processes under memory pressure without warning and
 without anything being wrong — a location foreground service is a late
@@ -786,6 +786,13 @@ why the collectors can let a provider's total *replace* the ride's. A
 restored ride has no such instances, so `priorMeters`/`priorSeconds`
 hold what it did before and are added to whatever a resumed provider
 counts from zero.
+
+*Superseded 2026-08-30 by "An Interrupted Ride Comes Back Doing What It
+Was Doing".* The reasoning above is right about what is unknowable - the
+distance driven during the gap is gone either way - but it treated the
+ride's **state** as unknowable too, and it needn't be. `LiveRideStore`
+already exists to hold a fact outside the process that is about to die;
+it now holds the status as well as the id.
 
 ## Decision: Export Owns a File in Downloads, Not a Folder Grant
 
@@ -1237,3 +1244,43 @@ generous side. Each is now what a season of use suggested:
 
 None of them touch a ride already saved, or an install that has set its
 own value — a written preference always beats a default.
+
+## Decision: An Interrupted Ride Comes Back Doing What It Was Doing
+
+A ride whose process was killed comes back in the state it was killed
+in, and the gap counts as whatever that state was. Running rides resume
+and the downtime bills as ride time; paused rides stay paused and the
+downtime bills as nothing, which is what pausing already means.
+
+This replaces coming back always-paused. That rule was cautious about
+the wrong thing. What the gap actually costs is **distance** - no
+provider was running, so those metres are gone whatever happens next -
+and no policy recovers them. The *time* is not lost: the app knows
+exactly when it was last alive, and now knows what it was doing, so
+counting the gap as that state is the reading that needs the fewest
+assumptions. Coming back paused threw the time away as well, and left a
+ride that was under way sitting still until the user noticed - which,
+on a phone in a pocket, is the whole problem.
+
+Two things make it safe:
+
+* **`LiveRideStore` carries the status.** `RideRecord` has no status
+  column and a live row cannot be told from a finished one by looking at
+  it, which is why the store exists at all. Writing the status beside
+  the id costs one `commit()` at start, pause and resume - all rare -
+  and is on disk before the kill, which is the store's whole purpose. A
+  marker written by an older build has no status and reads as paused,
+  exactly as before.
+* **`MAX_GAP_TO_RESUME_MILLIS` (15 minutes).** A ride running four
+  minutes ago is very likely still under way. A ride whose process died
+  this morning is not, and resuming it would meter a vehicle that has
+  been parked for hours. Past the cap it comes back paused and says so.
+  The same figure and the same reasoning as `MAX_BACKDATE_MILLIS`.
+
+The user is told either way, on a notification channel of its own at
+`IMPORTANCE_HIGH`: what stopped it (from `ApplicationExitInfo`, already
+recorded), how long it was gone, and what the ride is doing now. The
+ongoing ride notification is `IMPORTANCE_LOW` and silent by design,
+which is exactly why being killed mid-ride otherwise announces nothing
+at all - the notification dies with the process and the phone in a
+pocket shows a gap nobody sees.

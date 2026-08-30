@@ -69,6 +69,18 @@ class RideMeter(
         // against a stationary vehicle can take five minutes to settle;
         // anything beyond this is a clock or a caller in error.
         private const val MAX_BACKDATE_MILLIS = 15 * 60_000L
+
+        // How long a gap an interrupted ride will resume across.
+        //
+        // A ride that was running when the process died is very likely
+        // still under way a few minutes later, and picking it back up
+        // is what the user wants. A ride whose process died this morning
+        // is not, and coming back RUNNING would meter a vehicle that has
+        // been parked for hours - so past this it comes back paused and
+        // says why. Same figure as MAX_BACKDATE_MILLIS and the same
+        // reasoning: beyond it, believing the clock does more harm than
+        // trusting it.
+        private const val MAX_GAP_TO_RESUME_MILLIS = 15 * 60_000L
         private val PERSIST_INTERVAL = 5.seconds
     }
 
@@ -306,7 +318,7 @@ class RideMeter(
         // Written before the row, not after: the marker is what says a
         // ride was in progress if this process doesn't survive, and a
         // row with no marker reads as a finished ride.
-        liveRideStore.markLive(startRide.id)
+        liveRideStore.markLive(startRide.id, RideStatus.RUNNING)
 
         scope.launch {
             rideRepository.saveRide(
@@ -356,9 +368,10 @@ class RideMeter(
         startPlaceName: String?,
         endPlaceName: String?,
         settings: Settings,
-    ): Boolean {
+        wasRunning: Boolean = false,
+    ): Restored? {
 
-        if (_ride.value.status != RideStatus.READY) return false
+        if (_ride.value.status != RideStatus.READY) return null
 
         activeSettings = settings.copy(
             perMeterRate = record.perMeterRate,
@@ -374,16 +387,37 @@ class RideMeter(
         priorMeters = record.meters
         priorSeconds = record.elapsedSeconds
 
+        // The gap: from the last moment the ride is known to have been
+        // metering, to now. Nothing was measured across it - the process
+        // was dead - so the distance driven in it is gone whatever
+        // happens next. The time is not: the app knows exactly how long
+        // it was away, and what the ride was doing when it went.
+        val lastKnownLive = record.startTime + record.elapsedSeconds * 1000L
+        val gapMillis = (System.currentTimeMillis() - lastKnownLive).coerceAtLeast(0L)
+
+        // A ride that was running comes back running, and the gap counts
+        // as what it was - ride time - so the meter reads as though it
+        // had never died, short only the distance. Too long a gap and
+        // that stops being true, so it comes back paused instead.
+        val resumable = wasRunning && gapMillis <= MAX_GAP_TO_RESUME_MILLIS
+        val restoredStatus = if (resumable) RideStatus.RUNNING else RideStatus.PAUSED
+
+        // A paused ride's gap is paused time, which is not ride time and
+        // was never billed - so there is nothing to add for it.
+        if (resumable) {
+            priorSeconds += gapMillis / 1000L
+        }
+
         _ride.value = Ride(
             id = record.id,
             name = record.name,
-            status = RideStatus.PAUSED,
+            status = restoredStatus,
             startTime = record.startTime,
             // The last moment the ride is known to have been running,
             // which is where its final persist left it - not now, and
             // not the row's endTime, which for a live row is only a
             // stand-in for the start time.
-            endTime = record.startTime + record.elapsedSeconds * 1000L,
+            endTime = if (resumable) null else lastKnownLive,
             startLocation = record.startLocation,
             endLocation = record.endLocation,
             startPlaceId = record.startPlaceId,
@@ -391,7 +425,7 @@ class RideMeter(
             endPlaceId = record.endPlaceId,
             endPlaceName = endPlaceName,
             meters = record.meters,
-            elapsedSeconds = record.elapsedSeconds,
+            elapsedSeconds = priorSeconds,
             manualAmount = record.manualAmount,
             stopPlaceIds = stopPlaceIds,
             stopPlaceNames = stopPlaceNames,
@@ -422,10 +456,39 @@ class RideMeter(
         // creates one, since start() is what normally does.
         distanceProvider = createDistanceProvider(activeSettings)
 
-        Log.d("RideMeter", "Restored ride ${record.id} as PAUSED")
+        // A ride coming back RUNNING has to be metering again, not just
+        // labelled as running.
+        if (resumable) {
+            liveRideStore.markStatus(RideStatus.RUNNING)
+            startTimeTracking()
+            startDistanceTracking()
+            startPersisting()
+        } else {
+            liveRideStore.markStatus(RideStatus.PAUSED)
+        }
 
-        return true
+        Log.d("RideMeter", "Restored ride ${record.id} as $restoredStatus after ${gapMillis}ms")
+
+        return Restored(
+            status = restoredStatus,
+            gapMillis = gapMillis,
+            wasRunning = wasRunning,
+        )
     }
+
+    /**
+     * What restore() made of an interrupted ride, for the service to
+     * tell the user about.
+     *
+     * [wasRunning] with a [status] of PAUSED is the case worth
+     * announcing loudest: the ride was metering, the gap was too long to
+     * assume it still is, and the user has to decide.
+     */
+    data class Restored(
+        val status: RideStatus,
+        val gapMillis: Long,
+        val wasRunning: Boolean,
+    )
 
     /**
      * Stops tracking and provisionally ends the ride here: wherever we
@@ -455,6 +518,7 @@ class RideMeter(
         dwellPausedAt = pausedAt
 
         persistNow()
+        liveRideStore.markStatus(RideStatus.PAUSED)
 
         sounds.play(RideSounds.Sound.PAUSE)
     }
@@ -503,6 +567,7 @@ class RideMeter(
         )
 
         persistNow()
+        liveRideStore.markStatus(RideStatus.RUNNING)
 
         startTimeTracking()
         startDistanceTracking()
