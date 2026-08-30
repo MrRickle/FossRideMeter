@@ -1266,7 +1266,11 @@ Two things make it safe:
 
 * **`LiveRideStore` carries the status.** `RideRecord` has no status
   column and a live row cannot be told from a finished one by looking at
-  it, which is why the store exists at all. Writing the status beside
+  it, which is why the store exists at all. It is stored as
+  `RideStatus.name`, which makes SharedPreferences a fourth place an
+  enum constant's *name* is a data format — see the R8 keep rules in
+  `CLAUDE.md`, and note this is the one read before anything else at
+  service create. Writing the status beside
   the id costs one `commit()` at start, pause and resume - all rare -
   and is on disk before the kill, which is the store's whole purpose. A
   marker written by an older build has no status and reads as paused,
