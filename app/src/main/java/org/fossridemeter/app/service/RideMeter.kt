@@ -72,15 +72,21 @@ class RideMeter(
 
         // How long a gap an interrupted ride will resume across.
         //
-        // A ride that was running when the process died is very likely
-        // still under way a few minutes later, and picking it back up
-        // is what the user wants. A ride whose process died this morning
-        // is not, and coming back RUNNING would meter a vehicle that has
-        // been parked for hours - so past this it comes back paused and
-        // says why. Same figure as MAX_BACKDATE_MILLIS and the same
-        // reasoning: beyond it, believing the clock does more harm than
-        // trusting it.
-        private const val MAX_GAP_TO_RESUME_MILLIS = 15 * 60_000L
+        // An ordinary memory kill doesn't come near this: the service is
+        // START_STICKY, so the system restarts it in seconds and the ride
+        // picks up almost at once. What produces a long gap is a
+        // different kind of event - a force stop or a swipe off Recents,
+        // which cancels the sticky restart; a flat battery; a reboot.
+        // Those can be hours, and resuming across one would meter a
+        // vehicle that was parked for the evening.
+        //
+        // An hour is deliberately generous with the ambiguous middle,
+        // because the common case recovers in seconds and anything near
+        // the boundary is more likely a phone that struggled than a ride
+        // that ended. Past it the ride comes back paused, says why, and
+        // offers Resume and Save on the notification - so being wrong in
+        // that direction costs one tap.
+        private const val MAX_GAP_TO_RESUME_MILLIS = 60 * 60_000L
         private val PERSIST_INTERVAL = 5.seconds
     }
 

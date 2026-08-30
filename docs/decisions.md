@@ -1271,11 +1271,22 @@ Two things make it safe:
   and is on disk before the kill, which is the store's whole purpose. A
   marker written by an older build has no status and reads as paused,
   exactly as before.
-* **`MAX_GAP_TO_RESUME_MILLIS` (15 minutes).** A ride running four
-  minutes ago is very likely still under way. A ride whose process died
-  this morning is not, and resuming it would meter a vehicle that has
-  been parked for hours. Past the cap it comes back paused and says so.
-  The same figure and the same reasoning as `MAX_BACKDATE_MILLIS`.
+* **`MAX_GAP_TO_RESUME_MILLIS` (one hour).** An ordinary memory kill
+  never approaches it: the service is `START_STICKY`, so the system
+  restarts it within seconds and the ride picks up almost at once. What
+  produces a long gap is a different kind of event - a force stop or a
+  swipe off Recents, which cancels the sticky restart; a flat battery; a
+  reboot - and those run to hours, where resuming would meter a vehicle
+  parked for the evening. An hour is deliberately generous with the
+  ambiguous middle, because anything near the boundary is more likely a
+  phone that struggled than a ride that ended, and being wrong in that
+  direction costs one tap.
+
+A ride that comes back paused after a long gap carries **Resume** and
+**Save** on the notification, so the decision can be made without
+opening the app - the same pair, for the same reason, that the
+automatic-save countdown offers. A ride that came back running needs no
+buttons: it is already doing the right thing.
 
 The user is told either way, on a notification channel of its own at
 `IMPORTANCE_HIGH`: what stopped it (from `ApplicationExitInfo`, already

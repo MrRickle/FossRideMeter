@@ -12,8 +12,10 @@ the shape of things may still change between minor versions.
   If the app is killed mid-ride — for memory, usually — it comes back
   metering rather than paused, and the time it was gone counts as ride
   time. Distance during the gap cannot be recovered, because nothing was
-  measuring. A gap longer than 15 minutes still comes back paused, since
-  by then the vehicle may have been parked for hours.
+  measuring. A gap longer than an hour still comes back paused, since by
+  then the vehicle may have been parked all evening — and that
+  notification carries **Resume** and **Save**, so the decision takes one
+  tap and no trip into the app.
 
 ### Added
 

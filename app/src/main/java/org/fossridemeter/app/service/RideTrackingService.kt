@@ -932,6 +932,18 @@ class RideTrackingService : Service() {
             .setCategory(NotificationCompat.CATEGORY_ERROR)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
+            .apply {
+                // Only when it came back paused, which is the case that
+                // needs an answer: the ride was under way, the gap was
+                // too long to assume it still is, and somebody has to
+                // decide. Both answers belong here rather than inside
+                // the app - the same reasoning as the automatic-save
+                // countdown, which offers this pair for the same reason.
+                if (restored.status != RideStatus.RUNNING && restored.wasRunning) {
+                    addAction(0, "Resume", serviceAction(ACTION_RESUME, requestCode = 4))
+                    addAction(0, "Save", serviceAction(ACTION_SAVE_NOW, requestCode = 5))
+                }
+            }
             .setContentIntent(
                 PendingIntent.getActivity(
                     this,
