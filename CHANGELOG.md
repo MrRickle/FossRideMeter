@@ -4,6 +4,17 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
+## Unreleased
+
+### Fixed
+
+- **Pressing Back could crash the app while it was quitting.** If the
+  service was not connected — killed for memory and not yet rebuilt, or
+  the bind not finished — every command the app sent it threw instead. A
+  command that arrives with no service now goes in the event log and is
+  dropped; the ride is on disk regardless, and the next start picks it
+  up.
+
 ## 0.1.4 — 2026-08-28
 
 ### Added

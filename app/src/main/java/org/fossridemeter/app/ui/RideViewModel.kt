@@ -45,6 +45,7 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.fossridemeter.app.model.RideStatus
+import org.fossridemeter.app.util.EventLog
 
 
 class RideViewModel(application: Application) : AndroidViewModel(application) {
@@ -55,21 +56,19 @@ class RideViewModel(application: Application) : AndroidViewModel(application) {
     fun appBackgrounded() {
         Log.d("RideViewModel", "appBackgrounded, status=${ride.value.status}, isQuitting=$isQuitting")
         if (!isQuitting && ride.value.status != RideStatus.READY) {
-            requireService().showBubble()
+            withService("Show bubble") { it.showBubble() }
         }
     }
 
     fun appForegrounded() {
         Log.d("RideViewModel", "appForegrounded")
-        if (serviceStarted) {
-            requireService().hideBubble()
-        }
+        withService("Hide bubble") { it.hideBubble() }
     }
 
 
 
     fun cancel() {
-        requireService().cancel()
+        withService("Cancel") { it.cancel() }
     }
 
     private val settingsRepository =
@@ -145,11 +144,11 @@ class RideViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun updateName(name: String) {
-        requireService().updateName(name)
+        withService("Set name") { it.updateName(name) }
     }
 
     fun updateManualAmount(amount: Double?) {
-        requireService().updateManualAmount(amount)
+        withService("Set amount") { it.updateManualAmount(amount) }
     }
 
     fun updateSettings(settings: Settings) {
@@ -158,21 +157,59 @@ class RideViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+
+    /**
+     * Runs [action] on the bound service, or records that it couldn't.
+     *
+     * A command the user asked for must never crash the app because the
+     * service isn't there. It can be missing for two ordinary reasons:
+     * the process was killed - for memory, most often - and the
+     * connection has not been rebuilt yet, or the user acted before the
+     * bind completed. Neither is worth a crash: the ride is on disk
+     * already, re-written every PERSIST_INTERVAL, and the next service
+     * create restores it.
+     *
+     * quit() taking this path is what actually happened - a Back press
+     * on 2026-08-28 threw "RideTrackingService is not connected" out of
+     * requireService() and killed the app while it was being asked to
+     * shut down tidily.
+     *
+     * Note that `serviceStarted` is not the test: it means the bind was
+     * *requested*, which is true for the whole window before the
+     * connection arrives. Only a non-null service is a connected one.
+     *
+     * Inline so the lambda keeps its caller's coroutine context - save()
+     * and addStop() call suspending service methods.
+     */
+    private inline fun withService(
+        what: String,
+        action: (RideTrackingService) -> Unit,
+    ) {
+        val service = rideService
+
+        if (service == null) {
+            EventLog.log("RideViewModel", "$what ignored - service not connected")
+            return
+        }
+
+        action(service)
+    }
+
     private fun requireService(): RideTrackingService =
         checkNotNull(rideService) {
             "RideTrackingService is not connected."
         }
 
     fun start() {
-        requireService().start(settings.value)
+        withService("Start") { it.start(settings.value) }
     }
 
     fun pause() {
-        requireService().pause()
+        withService("Pause") { it.pause() }
     }
 
     fun resume() {
-        requireService().resume()
+        withService("Resume") { it.resume() }
     }
 
     /**
@@ -184,7 +221,7 @@ class RideViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun save() {
         viewModelScope.launch {
-            requireService().save()
+            withService("Save") { it.save() }
         }
     }
 
@@ -195,14 +232,22 @@ class RideViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun addStop() {
         viewModelScope.launch {
-            requireService().addStop()
+            withService("Add stop") { it.addStop() }
         }
     }
 
     fun quit() {
         isQuitting = true
-        requireService().quit()
-        getApplication<Application>().unbindService(serviceConnection)
+
+        withService("Quit") { it.quit() }
+
+        // Guarded, because unbindService throws when nothing was ever
+        // bound - and quit() is reachable from a Back press before the
+        // connection completes.
+        if (serviceStarted) {
+            getApplication<Application>().unbindService(serviceConnection)
+        }
+
         rideService = null
         serviceStarted = false
     }
