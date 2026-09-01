@@ -161,6 +161,16 @@ fixed rather than chosen — `AppVersion.versionName` existed from the
 start and nothing ever called it, so 0.1.0 through 0.1.3 all shipped
 showing a commit hash and a date and no version at all.
 
+**Check for updates** opens the releases page in a browser, and the
+source line above it opens the repository. Both are handoffs, not
+fetches: the app has no `INTERNET` permission and is not getting one for
+this, so it cannot know whether a newer version exists. The button's
+supporting line says exactly that rather than implying a check happened.
+What it buys is the answer one tap from the version right above it,
+which is the comparison being made anyway. A phone that should notice
+updates by itself wants Obtainium, which watches the same page and needs
+nothing from here. URLs live in `util/ProjectLinks.kt`.
+
 Every handle and address lives in `util/Donations.kt` and nowhere else. A
 blank one is dropped rather than shown, and with all of them blank the
 section renders nothing at all, divider included — a build with no

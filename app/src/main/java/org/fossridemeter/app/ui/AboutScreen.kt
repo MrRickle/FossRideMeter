@@ -22,18 +22,25 @@
  */
 package org.fossridemeter.app.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import org.fossridemeter.app.util.AppVersion
+import org.fossridemeter.app.util.ProjectLinks
+import org.fossridemeter.app.util.openLink
 
 @Composable
 fun AboutScreen() {
+
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -82,7 +89,33 @@ fun AboutScreen() {
         Spacer(Modifier.height(12.dp))
 
         Text(
-            "Source code available on GitHub."
+            text = "Source code available on GitHub.",
+            modifier = Modifier.clickable {
+                openLink(context, ProjectLinks.REPO, "FossRideMeter")
+            }
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Opens the releases page rather than checking for an update.
+        // The app has no INTERNET permission and is not getting one for
+        // this - see ProjectLinks - so it cannot know whether a newer
+        // version exists. What it can do is put the answer one tap from
+        // the version above it, which is the comparison being made
+        // anyway.
+        OutlinedButton(
+            onClick = {
+                openLink(context, ProjectLinks.LATEST_RELEASE, "FossRideMeter releases")
+            }
+        ) {
+            Text("Check for updates")
+        }
+
+        Text(
+            text = "Opens the releases page in your browser. The app has no " +
+                "internet access of its own, so it cannot check for you.",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(top = 4.dp)
         )
 
         // Draws nothing at all - divider included - until a donation

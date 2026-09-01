@@ -19,6 +19,12 @@ the shape of things may still change between minor versions.
 
 ### Added
 
+- **A "Check for updates" button on the About screen**, which opens the
+  releases page in your browser, and a tappable source-code line beside
+  it. The app still has no internet access of its own — it cannot check
+  for you, and the button says so. If you want your phone to notice
+  updates by itself, point Obtainium at the repository.
+
 - **Tap any column header on Rides or Places to sort by it**, and tap it
   again to reverse. The sorted column shows ▲ or ▼. Every column sorts,
   including the ones that are worked out rather than stored — start and
