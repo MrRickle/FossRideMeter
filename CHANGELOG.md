@@ -38,6 +38,16 @@ the shape of things may still change between minor versions.
 
 ### Fixed
 
+- **Rides were measuring far short — a 4.4 mile errand metered 1.9
+  miles.** A GPS fix that was rejected as too vague, too slow or too far
+  did not just fail to add its own distance: it also discarded the
+  distance since the last fix that *was* counted. Every turn, traffic
+  light and parking manoeuvre threw away the ground either side of
+  itself, and so did the whole accuracy band the app displays as POOR.
+  A rejected fix now leaves the measurement where it was, so the next
+  good one picks up the whole stretch. Rides already saved are not
+  changed.
+
 - **Pressing Back could crash the app while it was quitting.** If the
   service was not connected — killed for memory and not yet rebuilt, or
   the bind not finished — every command the app sent it threw instead. A

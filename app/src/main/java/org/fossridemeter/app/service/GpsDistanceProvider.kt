@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import android.os.Looper
 import org.fossridemeter.app.model.RideLocation
+import org.fossridemeter.app.util.DistanceUtil
 import org.fossridemeter.app.model.Settings
 
 class GpsDistanceProvider(
@@ -98,41 +99,42 @@ class GpsDistanceProvider(
                             moving = moving
                         )
 
-                    if (!moving) {
-                        previousLocation = location
-                        return@let
-                    }
+                    // DistanceFilter decides; this only carries out the
+                    // verdict. The important half is Skip, which leaves
+                    // previousLocation alone - a fix that cannot be
+                    // trusted must not also consume the distance since
+                    // the last one that could.
+                    val verdict = DistanceFilter.judge(
+                        previous = previousLocation?.asFix(),
+                        current = location.asFix(),
+                        minimumSpeedMps = settings.minimumSpeedMps,
+                        distanceMeters = { a, b -> haversineMeters(a, b) },
+                    )
 
-                    previousLocation?.let { previous ->
-                        Log.d(
-                            "GPS",
-                            "Location ${location.latitude}, ${location.longitude}"
-                        )
-                        val meters =
-                            previous.distanceTo(location)
+                    when (verdict) {
 
-                        if (meters > 100) {
-                            previousLocation = location
-                            return@let
-                        }
-
-                        // Ignore GPS drift
-                        if (
-                            location.accuracy in 0f..<10f &&
-                            location.speed in 0f..<45f
-                        ) {
-                            totalMeters += meters
+                        is DistanceFilter.Verdict.Count -> {
+                            totalMeters += verdict.meters
                             _distance.value = totalMeters
+                            previousLocation = location
 
                             Log.d(
                                 TAG,
                                 "Moved %.2f m   Total %.2f m"
-                                    .format(meters, totalMeters)
-
+                                    .format(verdict.meters, totalMeters)
                             )
                         }
+
+                        DistanceFilter.Verdict.Reanchor ->
+                            previousLocation = location
+
+                        DistanceFilter.Verdict.Skip ->
+                            Log.d(
+                                TAG,
+                                "Skipped fix: accuracy=%.0fm speed=%.1f - anchor kept"
+                                    .format(location.accuracy, location.speed)
+                            )
                     }
-                    previousLocation = location
                 }
             }
         }
@@ -142,6 +144,20 @@ class GpsDistanceProvider(
 
         //    _status.value = DistanceStatus.WAITING
         Log.d("GPS", "Starting location updates")
+
+        // Measure from the next fix, not from wherever the last one
+        // was. start() is called on resume as well as at the beginning
+        // of a ride, and the vehicle may have moved while paused - which
+        // is time the user said not to bill. The total is kept; only the
+        // anchor is dropped, so nothing is measured across a stretch
+        // nobody was watching.
+        //
+        // This used to fall out of the flat 100 m cap discarding any big
+        // jump, which rebaseForDeparture's comment relied on. Saying it
+        // outright is better than depending on a filter meant for
+        // something else - and the filter no longer does it, because a
+        // long gap at a plausible speed is now real distance.
+        previousLocation = null
         _gpsInfo.value = GpsInfo(
             status = DistanceStatus.WAITING,
             moving = false
@@ -173,3 +189,25 @@ class GpsDistanceProvider(
         _distance.value = 0.0
     }
 }
+
+/** Only what DistanceFilter needs, so the decision stays testable. */
+private fun Location.asFix() =
+    DistanceFilter.Fix(
+        latitude = latitude,
+        longitude = longitude,
+        accuracyMeters = accuracy,
+        speedMps = speed,
+        hasSpeed = hasSpeed(),
+        elapsedMillis = elapsedRealtimeNanos / 1_000_000L,
+    )
+
+/**
+ * Great-circle metres between two fixes.
+ *
+ * Location.distanceTo() would do it, but taking primitives keeps the
+ * filter testable off a device - and this is the same haversine the
+ * place matching already uses, so a ride's distance and a place's
+ * radius are measured the same way.
+ */
+private fun haversineMeters(a: DistanceFilter.Fix, b: DistanceFilter.Fix): Double =
+    DistanceUtil.haversineMeters(a.latitude, a.longitude, b.latitude, b.longitude)

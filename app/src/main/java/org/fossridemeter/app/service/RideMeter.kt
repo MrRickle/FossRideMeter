@@ -606,6 +606,11 @@ class RideMeter(
      * provider is reset to count the rest from zero with no memory of
      * where the ride was parked.
      */
+    // Note (2026-09-03): GpsDistanceProvider.start() now clears its own
+    // anchor, so the "counted twice" worry below no longer depends on a
+    // 100 m cap catching it. The reset here is still right - it is what
+    // makes metersAlready the whole of the gap - but nothing rests on a
+    // filter written for drift any more.
     private fun rebaseForDeparture(departedAtMillis: Long, metersAlready: Double) {
 
         val now = System.currentTimeMillis()
