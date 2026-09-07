@@ -41,6 +41,7 @@ import org.fossridemeter.app.model.RideRecord
 import org.fossridemeter.app.model.Stop
 import org.fossridemeter.app.model.toRecord
 import org.fossridemeter.app.util.DistanceUtil
+import org.fossridemeter.app.util.EventLog
 import java.util.UUID
 import java.time.Instant
 import java.time.ZoneId
@@ -708,6 +709,14 @@ class RideMeter(
         // nothing that was not ride time.
         _ride.value = _ride.value.copy(stoppedSeconds = stoppedSecondsNow())
 
+        // The breakdown, because the total on its own cannot be argued
+        // with. A ride that reports more time stopped than it lasted has
+        // happened, and reading it back from the row afterwards could
+        // not say which half was wrong - the stop rows, or the dwell,
+        // or the clock the dwell was measured against. This says so at
+        // the moment it is decided.
+        logStoppedBreakdown()
+
         _ride.value = _ride.value.copy(
             // A running ride ends now. A paused one already ended - at
             // the pause, or at the last moment a restored ride is known
@@ -985,6 +994,34 @@ class RideMeter(
      * stop, or as soon as the user says it is one. Anything shorter is
      * a traffic light, and traffic lights are driving.
      */
+    /**
+     * Writes out how stopped time was arrived at, for the event log.
+     *
+     * Deliberately every component: a total that disagrees with the
+     * ride's own duration is a symptom, and the components are what say
+     * which part produced it.
+     */
+    private fun logStoppedBreakdown() {
+
+        val now = System.currentTimeMillis()
+        val frozenAt = if (dwellPausedAt != 0L) dwellPausedAt else now
+
+        val finished = recordedStops.sumOf { it.endTime - it.startTime } / 1000
+        val dwellSeconds =
+            if (dwellAnchor == null) 0L else (frozenAt - dwellAnchorTime) / 1000
+
+        EventLog.log(
+            "RideMeter",
+            "Stopped time: ${_ride.value.stoppedSeconds}s = " +
+                "${recordedStops.size} stop(s) totalling ${finished}s " +
+                "+ dwell ${dwellSeconds}s " +
+                "(anchor ${if (dwellAnchor == null) "none" else "set"}, " +
+                "measured to ${if (dwellPausedAt != 0L) "the pause" else "now"}, " +
+                "threshold ${activeSettings.stopDetectionMinutes}min). " +
+                "Ride elapsed ${_ride.value.elapsedSeconds}s"
+        )
+    }
+
     private fun stoppedSecondsNow(now: Long = System.currentTimeMillis()): Long {
 
         // While the ride is paused the dwell clock is frozen at the

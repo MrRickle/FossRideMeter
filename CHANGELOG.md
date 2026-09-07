@@ -43,8 +43,7 @@ the shape of things may still change between minor versions.
   but the stopped-time clock kept running until the save was confirmed —
   so the wait counted as time spent stopped. An automatic save hit this
   every time, being committed a grace window after it paused: a
-  seven-minute ride reported nine minutes stopped, the difference being
-  the grace window exactly. Because stopped time is capped at the ride's
+  seven-minute ride reported nine minutes stopped. Because stopped time is capped at the ride's
   length when the fare is worked out, an overrun left *no* moving time,
   so the entire ride charged at the stopped hourly rate. Rides already
   saved keep the figures they were saved with.
