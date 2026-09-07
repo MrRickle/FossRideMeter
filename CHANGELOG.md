@@ -8,6 +8,11 @@ the shape of things may still change between minor versions.
 
 ### Added
 
+- **The Places list shows each place's town or container too**, the
+  same way rides do, and sorts by it — so five branches of one chain
+  read as `Sparta|Kwik Trip` and `Tomah|Kwik Trip` rather than five
+  identical rows, and sorting by Name groups a town together.
+
 - **A + button on the Places screen** makes a place anywhere, without
   having to have stopped there first. Until now a place could only be
   created by renaming one the app made for you, or from a stop you had

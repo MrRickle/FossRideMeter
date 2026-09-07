@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.fossridemeter.app.model.Place
+import org.fossridemeter.app.util.PlaceNames
 import org.fossridemeter.app.model.RideLocation
 import org.fossridemeter.app.data.placeAt
 import org.fossridemeter.app.data.HAND_PLACED_RADIUS_METERS
@@ -93,6 +94,15 @@ fun PlacesScreen(
 
     val horizontalScroll = rememberScrollState()
 
+    // Composed once rather than per row: the name shown here is the
+    // same one the rides use, so five branches of one chain can be told
+    // apart by the town containing them.
+    val displayNames = remember(places, settings.placeNameDepth) {
+        places.associate { place ->
+            place.id to PlaceNames.composed(place, places, settings.placeNameDepth)
+        }
+    }
+
     // Enums survive a rotation on their own, which a data class holding
     // both halves would need a Saver for.
     var sortedBy by rememberSaveable { mutableStateOf<PlaceSort?>(null) }
@@ -100,8 +110,13 @@ fun PlacesScreen(
 
     val sorted = places.sortedByColumn(sortedBy, ascending) { key ->
         when (key) {
+            // By the name as shown, so sorting by name puts everything
+            // in one town together rather than scattering five
+            // identically named branches through the list.
             PlaceSort.Name ->
-                compareBy(String.CASE_INSENSITIVE_ORDER) { it.name }
+                compareBy(String.CASE_INSENSITIVE_ORDER) {
+                    displayNames[it.id] ?: it.name
+                }
 
             // By latitude then longitude: neither alone is an order
             // anyone means, but together they group places that are
@@ -165,6 +180,7 @@ fun PlacesScreen(
 
                     PlaceRow(
                         place = place,
+                        displayName = displayNames[place.id] ?: place.name,
                         settings = settings,
                         selected = place.id in selectedIds,
                         onClick = {
@@ -258,6 +274,7 @@ fun PlacesScreen(
 @Composable
 private fun PlaceRow(
     place: Place,
+    displayName: String,
     settings: Settings,
     selected: Boolean,
     onClick: () -> Unit,
@@ -280,7 +297,7 @@ private fun PlaceRow(
             modifier = Modifier.padding(vertical = 2.dp)
         ) {
 
-            DataCell(place.name, NameWidth)
+            DataCell(displayName, NameWidth)
 
             DataCell(
                 "%.5f, %.5f".format(place.latitude, place.longitude),

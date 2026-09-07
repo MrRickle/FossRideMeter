@@ -424,6 +424,12 @@ The workaround it replaces was hand-naming: places called `HD Lumber`
 and `Aldi's Sparta`, with the parent typed into the child because
 nothing else would show it. Those can go back to `Lumber` and `Sparta`.
 
+The Places screen shows the composed name too, and **sorts by it** —
+which is the point of it there: five branches of one chain read as
+`Sparta|Kwik Trip`, `Tomah|Kwik Trip` and so on, and sorting by Name
+puts everything in one town together instead of scattering five
+identical rows down the list.
+
 It is display only, in `util/PlaceNames.kt`. Nothing is written to a
 place, and the editor always shows and saves the place's own name — the
 composed label is built where a name is *drawn*, never on the `Place`
