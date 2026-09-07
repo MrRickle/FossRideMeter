@@ -19,6 +19,13 @@ the shape of things may still change between minor versions.
 
 ### Added
 
+- **A place inside another place now shows both names**, outermost
+  first: `Home Depot|Lumber`, `LaCrosse|kwik trip`. How many levels is a
+  new setting, **Place Name Levels** — 2 by default, up to as many as you
+  have (`Washington|LaCrosse|Home Depot|Lumber`), or 1 for the bare name
+  as before. Nothing is renamed: it is how the name is *shown*, and the
+  place editor still shows and saves the real one.
+
 - **A "Check for updates" button on the About screen**, which opens the
   releases page in your browser, and a tappable source-code line beside
   it. The app still has no internet access of its own — it cannot check

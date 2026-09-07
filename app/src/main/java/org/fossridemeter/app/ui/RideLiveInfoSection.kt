@@ -216,6 +216,7 @@ fun RideLiveInfoSection(
 
     if (showStopsDialog) {
         StopsDialog(
+            placeNameDepth = settings.placeNameDepth,
             stops = stops,
             places = places,
             onDismiss = { showStopsDialog = false },

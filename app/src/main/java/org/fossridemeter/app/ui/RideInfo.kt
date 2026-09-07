@@ -24,6 +24,7 @@ package org.fossridemeter.app.ui
 
 import org.fossridemeter.app.model.DistanceProviderType
 import org.fossridemeter.app.model.Place
+import org.fossridemeter.app.util.composedName
 import org.fossridemeter.app.model.Ride
 import org.fossridemeter.app.model.RideLocation
 import org.fossridemeter.app.model.RideRecord
@@ -122,6 +123,7 @@ fun Ride.toRideInfo(settings: Settings): RideInfo =
 fun RideRecord.toRideInfo(
     places: Map<String, Place>,
     stops: List<Stop>,
+    placeNameDepth: Int = 1,
 ): RideInfo =
     RideInfo(
         name = name,
@@ -134,9 +136,9 @@ fun RideRecord.toRideInfo(
         startTime = startTime,
         endTime = endTime,
         startPlaceId = startPlaceId,
-        startPlaceName = startPlaceId?.let(places::get)?.name,
+        startPlaceName = places.composedName(startPlaceId, placeNameDepth),
         endPlaceId = endPlaceId,
-        endPlaceName = endPlaceId?.let(places::get)?.name,
+        endPlaceName = places.composedName(endPlaceId, placeNameDepth),
         // Resolved through the places map rather than stored on the row -
         // a stop keeps only its place id, so a renamed place shows its
         // new name here without rewriting any ride. Consecutive stops at
@@ -145,7 +147,7 @@ fun RideRecord.toRideInfo(
         stopPlaceIds = stops.groupConsecutiveByPlace().map { it.placeId },
         stopPlaceNames = stops
             .groupConsecutiveByPlace()
-            .map { group -> group.placeId?.let(places::get)?.name },
+            .map { group -> places.composedName(group.placeId, placeNameDepth) },
         startLocation = startLocation,
         endLocation = endLocation,
         perMeterRate = perMeterRate,

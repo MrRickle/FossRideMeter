@@ -56,6 +56,7 @@ class SettingsRepository(
         val measurementSystem = stringPreferencesKey("measurement_system")
         val baseAmount = doublePreferencesKey("base_amount")
         val minimumAmount = doublePreferencesKey("minimum_amount")
+        val placeNameDepth = intPreferencesKey("place_name_depth")
         val stopDetectionMinutes = intPreferencesKey("stop_detection_minutes")
         val autoWatchSeconds = intPreferencesKey("auto_watch_seconds")
         val autoSaveGraceMinutes = intPreferencesKey("auto_save_grace_minutes")
@@ -109,6 +110,8 @@ class SettingsRepository(
                     preferences[Keys.baseAmount] ?: defaults.baseAmount,
                 minimumAmount =
                     preferences[Keys.minimumAmount] ?: defaults.minimumAmount,
+                placeNameDepth =
+                    preferences[Keys.placeNameDepth] ?: defaults.placeNameDepth,
                 stopDetectionMinutes =
                     preferences[Keys.stopDetectionMinutes] ?: defaults.stopDetectionMinutes,
                 autoWatchSeconds =
@@ -154,6 +157,8 @@ class SettingsRepository(
                 settings.baseAmount
             preferences[Keys.minimumAmount] =
                 settings.minimumAmount
+            preferences[Keys.placeNameDepth] =
+                settings.placeNameDepth
             preferences[Keys.stopDetectionMinutes] =
                 settings.stopDetectionMinutes
             preferences[Keys.autoWatchSeconds] =

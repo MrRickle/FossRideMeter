@@ -87,7 +87,11 @@ fun RideViewDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
                 RideInfoSection(
-                    info = ride.toRideInfo(places = places, stops = stops),
+                    info = ride.toRideInfo(
+                        places = places,
+                        stops = stops,
+                        placeNameDepth = settings.placeNameDepth,
+                    ),
                     settings = settings,
                     places = places,
                     onOpenStops = { showStopsDialog = true },
@@ -130,6 +134,7 @@ fun RideViewDialog(
 
     if (showStopsDialog) {
         StopsDialog(
+            placeNameDepth = settings.placeNameDepth,
             stops = stops,
             places = places,
             onDismiss = { showStopsDialog = false },

@@ -504,6 +504,14 @@ private fun SettingsDistanceSection(
         settingsFieldTextStyle,
         onSettingsChanged
     )
+
+    Spacer(Modifier.height(8.dp))
+
+    SettingsPlaceNameDepth(
+        settings,
+        settingsFieldTextStyle,
+        onSettingsChanged
+    )
 }
 
 @Composable
@@ -848,6 +856,50 @@ private val SIMULATOR_HELP =
         "Minimum Speed does nothing here - the simulator reports " +
         "distance directly. Test that one on GPS."
 
+
+/**
+ * How many levels of a place's name to show - see PlaceNames.
+ *
+ * It sits with the places rather than the rates because it changes what
+ * a place is *called* on screen, not what anything costs. Nothing is
+ * rewritten: the editor still shows and saves the place's own name.
+ */
+@Composable
+private fun SettingsPlaceNameDepth(
+    settings: Settings,
+    settingsFieldTextStyle: TextStyle,
+    onSettingsChanged: (Settings) -> Unit
+) {
+
+    var depthText by remember(settings.placeNameDepth) {
+        mutableStateOf(settings.placeNameDepth.toString())
+    }
+
+    OutlinedTextField(
+        value = depthText,
+        textStyle = settingsFieldTextStyle,
+        onValueChange = { input ->
+            depthText = input
+            input.toIntOrNull()?.let { depth ->
+                if (depth >= 1) {
+                    onSettingsChanged(settings.copy(placeNameDepth = depth))
+                }
+            }
+        },
+        label = { Text("Place Name Levels") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        supportingText = {
+            Text(
+                "${DEFAULTS.placeNameDepth} = default. " +
+                    "1 shows \"Lumber\", 2 \"Home Depot|Lumber\", " +
+                    "4 \"Washington|LaCrosse|Home Depot|Lumber\""
+            )
+        }
+    )
+
+    Spacer(Modifier.height(8.dp))
+}
 
 @Composable
 private fun SettingsMinimumGpsSpeed(

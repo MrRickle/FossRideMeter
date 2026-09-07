@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.fossridemeter.app.model.Place
+import org.fossridemeter.app.util.composedName
 import org.fossridemeter.app.model.Settings
 import org.fossridemeter.app.util.displayAmount
 import org.fossridemeter.app.util.displayDistance
@@ -113,7 +114,8 @@ fun RideInfoSection(
     val startPlace = info.startPlaceId?.let(places::get)
     InfoRow(
         "Start Place",
-        startPlace?.name ?: info.startPlaceName ?: "-",
+        places.composedName(info.startPlaceId, settings.placeNameDepth)
+            ?: info.startPlaceName ?: "-",
         onClick = startPlace?.let { place -> { onOpenPlace(place) } }
     )
 
@@ -125,7 +127,8 @@ fun RideInfoSection(
     // name first is what left a running ride's stops showing the old
     // name after a rename while the two ends of the same line updated.
     val stopNames = info.stopPlaceNames.mapIndexed { index, carried ->
-        info.stopPlaceIds.getOrNull(index)?.let(places::get)?.name ?: carried
+        places.composedName(info.stopPlaceIds.getOrNull(index), settings.placeNameDepth)
+            ?: carried
     }
 
     InfoRow(
@@ -134,9 +137,11 @@ fun RideInfoSection(
             "-"
         } else {
             buildPlacesSummary(
-                startPlaceName = startPlace?.name ?: info.startPlaceName,
+                startPlaceName = places.composedName(info.startPlaceId, settings.placeNameDepth)
+                    ?: info.startPlaceName,
                 stopPlaceNames = stopNames,
-                endPlaceName = endPlace?.name ?: info.endPlaceName,
+                endPlaceName = places.composedName(info.endPlaceId, settings.placeNameDepth)
+                    ?: info.endPlaceName,
             )
         },
         onClick = onOpenStops
@@ -144,7 +149,8 @@ fun RideInfoSection(
 
     InfoRow(
         "End Place",
-        endPlace?.name ?: info.endPlaceName ?: "-",
+        places.composedName(info.endPlaceId, settings.placeNameDepth)
+            ?: info.endPlaceName ?: "-",
         onClick = endPlace?.let { place -> { onOpenPlace(place) } }
     )
 

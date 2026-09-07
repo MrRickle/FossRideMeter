@@ -378,6 +378,35 @@ Edits are written as they are confirmed, onto the row as it stands at that
 moment — the dialog is handed a freshly looked-up record each time it
 draws, so nothing is captured long enough to go stale.
 
+## A place inside a place
+
+A place's name is shown with the places that contain it, outermost
+first, joined by `|`: `Home Depot|Lumber`, `LaCrosse|kwik trip`. How
+many levels is `Settings.placeNameDepth` — 1 is the bare name, 2 the
+default, 4 reaches `Washington|LaCrosse|Home Depot|Lumber`.
+
+A place's parent is the smallest **named** place whose circle contains
+its centre and is larger than it. Smallest, so a department belongs to
+its store rather than to the city. Larger, so two circles of one size
+cannot each claim the other. Named, because a geohash placeholder is
+bookkeeping and says nothing.
+
+This displays a relationship the app already had. Resolution has always
+preferred the tighter place, so a stop inside "Home Depot Windows" is
+that rather than "Home Depot" — and then only the tighter name was
+shown, which is the half that doesn't identify it. "kwik trip" is a
+chain with a branch in every town.
+
+The workaround it replaces was hand-naming: places called `HD Lumber`
+and `Aldi's Sparta`, with the parent typed into the child because
+nothing else would show it. Those can go back to `Lumber` and `Sparta`.
+
+It is display only, in `util/PlaceNames.kt`. Nothing is written to a
+place, and the editor always shows and saves the place's own name — the
+composed label is built where a name is *drawn*, never on the `Place`
+that flows onward to the editor, or naming a stop would save the
+composition as the real name.
+
 ## Reaching a place from a ride
 
 Place names are links to the place editor, so a place can be fixed at the

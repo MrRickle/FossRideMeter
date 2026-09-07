@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.unit.dp
 import org.fossridemeter.app.model.Place
+import org.fossridemeter.app.util.composedName
 import org.fossridemeter.app.model.RideLocation
 import org.fossridemeter.app.model.Stop
 import java.text.SimpleDateFormat
@@ -64,6 +65,7 @@ import java.util.Date
 fun StopsDialog(
     stops: List<Stop>,
     places: Map<String, Place>,
+    placeNameDepth: Int = 1,
     onDismiss: () -> Unit,
     onOpenPlace: (Place) -> Unit = {},
     onNameSpot: (RideLocation) -> Unit = {},
@@ -105,6 +107,10 @@ fun StopsDialog(
                             position = index + 1,
                             group = group,
                             place = group.placeId?.let(places::get),
+                            // The place itself still goes through, so
+                            // tapping opens the editor on the real one -
+                            // only the label is composed.
+                            composedName = places.composedName(group.placeId, placeNameDepth),
                             formatter = formatter,
                             timeFormatter = timeFormatter,
                             onOpenPlace = onOpenPlace,
@@ -148,6 +154,7 @@ private fun StopGroupEntry(
     position: Int,
     group: StopGroup,
     place: Place?,
+    composedName: String?,
     formatter: SimpleDateFormat,
     timeFormatter: SimpleDateFormat,
     onOpenPlace: (Place) -> Unit,
@@ -158,7 +165,7 @@ private fun StopGroupEntry(
     // whose place never resolved is inert and says so by staying the
     // colour of ordinary text.
     Text(
-        text = "$position. ${place?.name ?: "?"}",
+        text = "$position. ${composedName ?: place?.name ?: "?"}",
         style = MaterialTheme.typography.titleMedium,
         color = if (place != null) tappableValueColor else Color.Unspecified,
         modifier = Modifier.clickable(

@@ -42,6 +42,16 @@ data class Settings(
     // near traffic speed would silently drop real miles crawled in a
     // car park or a jam. Walking pace splits the two.
     val minimumSpeedMps: Double = 1.34112,
+    // How many levels of a place's name to show: 1 is the bare name, 2
+    // is "Home Depot|Lumber", 4 reaches
+    // "Washington|LaCrosse|Home Depot|Lumber".
+    //
+    // Two by default, because one throws away the half that identifies
+    // which one - "kwik trip" is a chain with a branch in every town -
+    // and more than two is rarer than it sounds. Display only: the
+    // place's real name is what the editor shows and saves.
+    val placeNameDepth: Int = 2,
+
     // GPS, because a fresh install's first ride has to be a real one.
     // The simulator is still there, one tap away in Settings - it just
     // isn't what someone who installed a ride meter asked for.

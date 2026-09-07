@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import org.fossridemeter.app.model.Place
+import org.fossridemeter.app.util.composedName
 import org.fossridemeter.app.model.RideRecord
 import org.fossridemeter.app.model.Settings
 import org.fossridemeter.app.model.Stop
@@ -128,12 +129,12 @@ fun RidesScreen(
                 // would be an ordering of random strings.
                 RideSort.StartPlace ->
                     compareBy(String.CASE_INSENSITIVE_ORDER) {
-                        it.startPlaceId?.let(places::get)?.name ?: ""
+                        places.composedName(it.startPlaceId, settings.placeNameDepth) ?: ""
                     }
 
                 RideSort.EndPlace ->
                     compareBy(String.CASE_INSENSITIVE_ORDER) {
-                        it.endPlaceId?.let(places::get)?.name ?: ""
+                        places.composedName(it.endPlaceId, settings.placeNameDepth) ?: ""
                     }
 
                 // How many places were stopped at, grouped the way the
@@ -311,7 +312,7 @@ private fun RidesRow(
             )
 
             DataCell(
-                ride.startPlaceId?.let(places::get)?.name ?: "-",
+                places.composedName(ride.startPlaceId, settings.placeNameDepth) ?: "-",
                 StartWidth
             )
 
@@ -321,13 +322,13 @@ private fun RidesRow(
                 // noise (unlike the full Start -> ... -> End chain shown
                 // in RideInfoSection for a single saved ride).
                 stops.groupConsecutiveByPlace()
-                    .map { it.placeId?.let(places::get)?.name ?: "?" }
+                    .map { places.composedName(it.placeId, settings.placeNameDepth) ?: "?" }
                     .let { names -> if (names.isEmpty()) "-" else names.joinToString(" \u2192 ") },
                 StopsWidth
             )
 
             DataCell(
-                ride.endPlaceId?.let(places::get)?.name ?: "-",
+                places.composedName(ride.endPlaceId, settings.placeNameDepth) ?: "-",
                 EndWidth
             )
 
