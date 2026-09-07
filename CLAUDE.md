@@ -33,6 +33,8 @@ Release builds are **minified** (R8 + resource shrinking, 14.1 MB → 1.9 MB). `
 
 `versionName` is `0.1.4`; `BuildConfig.GIT_VERSION` (short hash, `-dirty` suffix when the tree is dirty) and `BuildConfig.BUILD_TIME` (epoch millis, rendered in the device's local timezone by `AppVersion.buildTime`) are stamped at configure time and shown on the About screen so an installed build traces back to a commit. Because these run `git` during configuration, changing the working tree's dirty state invalidates the configuration cache.
 
+**Check the repository builds from git, not just from disk.** `PlacesBackup.kt` and `RidesBackup.kt` sat in `.git/info/exclude` — a local file that is never pushed — and were missing from the published repo for its whole life, so a clone did not compile. Nothing local noticed, because every build used the working directory. `git worktree add --detach <tmp> HEAD` and building there is the check, and it is worth running before a release.
+
 Every `.kt` file carries the GPL SPDX header from `license-header.txt`. `./add_license_headers.sh` adds it to any file missing one (idempotent) — run it after adding new source files.
 
 ## Architecture

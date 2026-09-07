@@ -38,6 +38,11 @@ the shape of things may still change between minor versions.
 
 ### Fixed
 
+- **The source repository was missing two files and did not compile.**
+  The import/export implementation had never been committed, so anyone
+  cloning FossRideMeter could not build it. The app itself was never
+  affected. (No release was missing the feature — only the source.)
+
 - **A ride could report more stopped time than it lasted, and bill the
   whole ride at the stopped rate.** Pausing freezes the ride's clock,
   but the stopped-time clock kept running until the save was confirmed —
