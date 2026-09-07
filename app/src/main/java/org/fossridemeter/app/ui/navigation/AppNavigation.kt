@@ -957,10 +957,14 @@ fun AppNavigation() {
 
                     val places by placesViewModel.places.collectAsState()
                     val settings by rideViewModel.settings.collectAsState()
+                    val fix by rideViewModel.gpsInfo.collectAsState()
 
                     PlacesScreen(
                         places = places,
                         settings = settings,
+                        // So a new place starts where the phone is, when
+                        // the phone knows where that is.
+                        currentLocation = fix.rideLocation,
                         onUpdatePlace = { updated ->
                             placesViewModel.updatePlace(updated)
                         },

@@ -4,6 +4,18 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
+## Unreleased
+
+### Added
+
+- **A + button on the Places screen** makes a place anywhere, without
+  having to have stopped there first. Until now a place could only be
+  created by renaming one the app made for you, or from a stop you had
+  already recorded — so a place bigger than a stop, like a town, meant
+  repurposing whichever placeholder happened to be near its middle. The
+  new place starts where you are, or at your most recent place if there
+  is no fix, and the location can be pasted in from a maps app.
+
 ## 0.1.5 — 2026-09-07
 
 ### Changed

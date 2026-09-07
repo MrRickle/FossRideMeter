@@ -378,6 +378,29 @@ Edits are written as they are confirmed, onto the row as it stands at that
 moment — the dialog is handed a freshly looked-up record each time it
 draws, so nothing is captured long enough to go stale.
 
+## Making a place that isn't a stop
+
+The Places screen has a **+** button. Everything else that creates a
+place requires having been somewhere and stood still long enough:
+renaming an auto-created placeholder, or tapping a stop's coordinates in
+the stops list. A town is not a stop, so drawing "Sparta" around one
+meant repurposing whatever placeholder happened to sit near its middle -
+which is how a store called "Aldi's Sparta" ended up being renamed into
+a city.
+
+It opens the same editor on an unsaved place, so the same save path
+writes it and `PlaceBoundaryEnforcer` runs exactly as for an edit. The
+place starts at the current fix when there is one, because "add a place
+where I am" is the common case; with no fix it starts on the most
+recently added place, which is somewhere real and obviously wrong rather
+than a point in the Atlantic. Either way the location row has **Paste**
+on it, which is how coordinates copied out of a maps app get in.
+
+The name starts as the geohash, the same default every auto-created
+place gets. Typing over it is the point; saving without doing so leaves
+a place named after its own geohash, which reads like a placeholder but
+is a named place.
+
 ## A place inside a place
 
 A place's name is shown with the places that contain it, outermost

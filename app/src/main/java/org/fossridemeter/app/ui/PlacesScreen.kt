@@ -26,6 +26,8 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -33,6 +35,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -42,6 +48,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import org.fossridemeter.app.model.Place
+import org.fossridemeter.app.model.RideLocation
+import org.fossridemeter.app.data.placeAt
+import org.fossridemeter.app.data.HAND_PLACED_RADIUS_METERS
 import org.fossridemeter.app.model.Settings
 import org.fossridemeter.app.util.displayDistance
 import org.fossridemeter.app.util.gpsAccuracyUnit
@@ -57,6 +66,7 @@ private val AutoWidth = 80.dp
 fun PlacesScreen(
     places: List<Place>,
     settings: Settings,
+    currentLocation: RideLocation? = null,
     onUpdatePlace: (Place) -> Unit,
     onDeletePlace: (String) -> Unit,
     selectedIds: Set<String>,
@@ -71,6 +81,13 @@ fun PlacesScreen(
     val selecting = selectedIds.isNotEmpty()
 
     var selectedPlace by remember {
+        mutableStateOf<Place?>(null)
+    }
+
+    // A place being created rather than edited. Separate state because
+    // the editor has to be told which it is: a place that does not exist
+    // yet must not offer Delete.
+    var newPlace by remember {
         mutableStateOf<Place?>(null)
     }
 
@@ -110,8 +127,10 @@ fun PlacesScreen(
         sortedBy = key
     }
 
+    Box(modifier = modifier) {
+
     Column(
-        modifier = modifier,
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
@@ -180,6 +199,57 @@ fun PlacesScreen(
                     selectedPlace = null
                 }
             )
+        }
+
+        newPlace?.let { place ->
+
+            PlaceEditDialog(
+                place = place,
+                settings = settings,
+                isNew = true,
+                onSave = { created ->
+                    onUpdatePlace(created)
+                    newPlace = null
+                },
+                // No onDelete: there is nothing to delete yet, and the
+                // editor hides it for a new place anyway.
+                onDismiss = {
+                    newPlace = null
+                }
+            )
+        }
+    }
+
+        // The only way to make a place that isn't where a ride already
+        // stopped. Everything else - renaming an auto-created
+        // placeholder, or tapping a stop's coordinates - requires having
+        // been there and stood still long enough. A town is not a stop,
+        // so drawing "Sparta" round a town meant repurposing whatever
+        // placeholder happened to be near its middle.
+        //
+        // It opens on the current fix when there is one, because "add a
+        // place where I am" is the common case. With no fix it opens on
+        // the most recently added place, which is somewhere real and
+        // obviously wrong rather than the Atlantic - and the location
+        // row has Paste on it, which is how a place copied out of a maps
+        // app gets here.
+        FloatingActionButton(
+            onClick = {
+                val anchor = currentLocation
+                    ?: places.maxByOrNull { it.createdAt }
+                        ?.let { RideLocation(it.latitude, it.longitude) }
+
+                newPlace = placeAt(
+                    latitude = anchor?.latitude ?: 0.0,
+                    longitude = anchor?.longitude ?: 0.0,
+                    radiusMeters = HAND_PLACED_RADIUS_METERS,
+                )
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "New place")
         }
     }
 }
