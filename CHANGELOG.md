@@ -4,7 +4,7 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
-## Unreleased
+## 0.1.5 — 2026-09-07
 
 ### Changed
 
@@ -45,21 +45,6 @@ the shape of things may still change between minor versions.
 
 ### Fixed
 
-- **The source repository was missing two files and did not compile.**
-  The import/export implementation had never been committed, so anyone
-  cloning FossRideMeter could not build it. The app itself was never
-  affected. (No release was missing the feature — only the source.)
-
-- **A ride could report more stopped time than it lasted, and bill the
-  whole ride at the stopped rate.** Pausing freezes the ride's clock,
-  but the stopped-time clock kept running until the save was confirmed —
-  so the wait counted as time spent stopped. An automatic save hit this
-  every time, being committed a grace window after it paused: a
-  seven-minute ride reported nine minutes stopped. Because stopped time is capped at the ride's
-  length when the fare is worked out, an overrun left *no* moving time,
-  so the entire ride charged at the stopped hourly rate. Rides already
-  saved keep the figures they were saved with.
-
 - **Rides were measuring far short — a 4.4 mile errand metered 1.9
   miles.** A GPS fix that was rejected as too vague, too slow or too far
   did not just fail to add its own distance: it also discarded the
@@ -69,6 +54,21 @@ the shape of things may still change between minor versions.
   A rejected fix now leaves the measurement where it was, so the next
   good one picks up the whole stretch. Rides already saved are not
   changed.
+
+- **The source repository was missing two files and did not compile.**
+  The import/export implementation had never been committed, so anyone
+  cloning FossRideMeter could not build it. The app itself was never
+  affected. (No release was missing the feature — only the source.)
+
+- **A ride could report more stopped time than it lasted, and bill the
+  whole ride at the stopped rate.** Pausing freezes the ride's clock, but
+  the stopped-time clock kept running until the save was confirmed — so
+  the wait counted as time spent stopped. An automatic save hit this
+  every time, being committed a grace window after it paused: a
+  seven-minute ride reported nine minutes stopped. Because stopped time
+  is capped at the ride's length when the fare is worked out, an overrun
+  left *no* moving time, so the entire ride charged at the stopped hourly
+  rate. Rides already saved keep the figures they were saved with.
 
 - **Pressing Back could crash the app while it was quitting.** If the
   service was not connected — killed for memory and not yet rebuilt, or

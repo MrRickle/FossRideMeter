@@ -110,9 +110,10 @@ android {
         targetSdk = 37
         // versionCode has to increase on every published build - Android
         // refuses an install whose code is not higher than the one on the
-        // phone. 1 was 0.1.0, 2 was 0.1.1, 3 was 0.1.2, 4 was 0.1.3.
-        versionCode = 5
-        versionName = "0.1.4"
+        // phone. 1 was 0.1.0, 2 was 0.1.1, 3 was 0.1.2, 4 was 0.1.3,
+        // 5 was 0.1.4.
+        versionCode = 6
+        versionName = "0.1.5"
 
         buildConfigField(
             "String",
