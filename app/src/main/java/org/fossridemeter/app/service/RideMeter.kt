@@ -1006,18 +1006,38 @@ class RideMeter(
         val now = System.currentTimeMillis()
         val frozenAt = if (dwellPausedAt != 0L) dwellPausedAt else now
 
-        val finished = recordedStops.sumOf { it.endTime - it.startTime } / 1000
-        val dwellSeconds =
-            if (dwellAnchor == null) 0L else (frozenAt - dwellAnchorTime) / 1000
+        val live = dwellStop
+        val threshold = activeSettings.stopDetectionMinutes * 60_000L
+
+        // The same filter stoppedSecondsNow applies: a dwell already
+        // written down as a stop is not counted twice.
+        val finished = recordedStops
+            .filter { live == null || it.id != live.id }
+            .sumOf { it.endTime - it.startTime } / 1000
+
+        val dwellMillis =
+            if (dwellAnchor == null) 0L else frozenAt - dwellAnchorTime
+
+        val dwellCounts = dwellAnchor != null && (live != null || dwellMillis >= threshold)
+
+        // The parts have to add up to the total, or the line cannot be
+        // checked - which is the only reason it exists. So report the
+        // dwell as counted, and say when it was there but ignored.
+        val dwellNote =
+            when {
+                dwellAnchor == null -> "no dwell"
+                dwellCounts -> "dwell ${dwellMillis / 1000}s"
+                else ->
+                    "dwell ${dwellMillis / 1000}s NOT counted " +
+                        "(under the ${activeSettings.stopDetectionMinutes}min threshold)"
+            }
 
         EventLog.log(
             "RideMeter",
             "Stopped time: ${_ride.value.stoppedSeconds}s = " +
-                "${recordedStops.size} stop(s) totalling ${finished}s " +
-                "+ dwell ${dwellSeconds}s " +
-                "(anchor ${if (dwellAnchor == null) "none" else "set"}, " +
-                "measured to ${if (dwellPausedAt != 0L) "the pause" else "now"}, " +
-                "threshold ${activeSettings.stopDetectionMinutes}min). " +
+                "${recordedStops.size} stop(s) totalling ${finished}s + " +
+                dwellNote +
+                ", measured to ${if (dwellPausedAt != 0L) "the pause" else "now"}. " +
                 "Ride elapsed ${_ride.value.elapsedSeconds}s"
         )
     }
