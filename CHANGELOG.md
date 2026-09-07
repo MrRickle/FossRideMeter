@@ -38,6 +38,17 @@ the shape of things may still change between minor versions.
 
 ### Fixed
 
+- **A ride could report more stopped time than it lasted, and bill the
+  whole ride at the stopped rate.** Pausing freezes the ride's clock,
+  but the stopped-time clock kept running until the save was confirmed —
+  so the wait counted as time spent stopped. An automatic save hit this
+  every time, being committed a grace window after it paused: a
+  seven-minute ride reported nine minutes stopped, the difference being
+  the grace window exactly. Because stopped time is capped at the ride's
+  length when the fare is worked out, an overrun left *no* moving time,
+  so the entire ride charged at the stopped hourly rate. Rides already
+  saved keep the figures they were saved with.
+
 - **Rides were measuring far short — a 4.4 mile errand metered 1.9
   miles.** A GPS fix that was rejected as too vague, too slow or too far
   did not just fail to add its own distance: it also discarded the

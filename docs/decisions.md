@@ -1245,6 +1245,34 @@ generous side. Each is now what a season of use suggested:
 None of them touch a ride already saved, or an install that has set its
 own value — a written preference always beats a default.
 
+## Decision: The Dwell Clock Freezes While Paused
+
+`stoppedSecondsNow()` measures the dwell under way as `now -
+dwellAnchorTime`. While the ride is paused, `now` is pinned to the
+moment it paused (`dwellPausedAt`).
+
+Paused time is not ride time — the time provider stops, so
+`elapsedSeconds` excludes it — and a dwell clock that kept running
+across a pause counted it as *stopped* time the ride never had. The
+result was a ride reporting more time stopped than it lasted at all.
+
+The automatic save reached this every single time, by design: it pauses
+on arrival and commits `autoSaveGraceMinutes` later, so the dwell ran on
+through the whole grace window. A real seven-minute ride reported nine
+minutes stopped, the difference being exactly the two-minute grace.
+
+It was not only a display fault, which is what makes it worth a decision
+rather than a patch. `AmountCalculator` clamps stopped time to elapsed —
+a guard written for rounding — so any overrun silently made moving time
+zero and billed the entire ride at `stoppedHourlyRate`. A guard against
+small disagreements quietly absorbed a large one, and the money moved
+without anything looking wrong.
+
+Frozen at the source rather than at each caller. `pause()`, `save()`,
+`addStop()` and the persist tick all ask the same question, and only
+`pause()` was passing the right clock — which is the argument for the
+answer not depending on the asker.
+
 ## Decision: An Interrupted Ride Comes Back Doing What It Was Doing
 
 A ride whose process was killed comes back in the state it was killed

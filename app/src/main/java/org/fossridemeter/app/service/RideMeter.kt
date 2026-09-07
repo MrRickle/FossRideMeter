@@ -702,6 +702,10 @@ class RideMeter(
         // Both halves of the amount are settled here: a retracted stop
         // has just left recordedStops, and a ride saved while still
         // RUNNING has never had the pause that banks the dwell.
+        //
+        // A paused ride's dwell is frozen at the pause - see
+        // stoppedSecondsNow - so confirming the save minutes later adds
+        // nothing that was not ride time.
         _ride.value = _ride.value.copy(stoppedSeconds = stoppedSecondsNow())
 
         _ride.value = _ride.value.copy(
@@ -982,6 +986,27 @@ class RideMeter(
      * a traffic light, and traffic lights are driving.
      */
     private fun stoppedSecondsNow(now: Long = System.currentTimeMillis()): Long {
+
+        // While the ride is paused the dwell clock is frozen at the
+        // moment it paused. Paused time is not ride time - the time
+        // provider stops, so elapsedSeconds excludes it - and measuring
+        // the dwell to the present would count it as stopped time the
+        // ride never had.
+        //
+        // That is not hypothetical: an automatic save pauses on arrival
+        // and commits autoSaveGraceMinutes later, so it reached this
+        // with the clock running every single time. A seven minute ride
+        // reported nine minutes stopped, the difference being exactly
+        // the grace window. It billed as well as displayed wrong -
+        // AmountCalculator clamps stopped to elapsed, so an overrun
+        // makes moving time zero and charges the whole ride at
+        // stoppedHourlyRate.
+        //
+        // Frozen here rather than at each caller: pause(), save(),
+        // addStop() and the persist tick all ask this question, and
+        // only pause() was passing the right clock.
+        @Suppress("NAME_SHADOWING")
+        val now = if (dwellPausedAt != 0L) minOf(now, dwellPausedAt) else now
 
         val live = dwellStop
 
