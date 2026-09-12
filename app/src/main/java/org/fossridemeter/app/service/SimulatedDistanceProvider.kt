@@ -122,6 +122,12 @@ class SimulatedDistanceProvider : DistanceProvider {
      * * Those same four minutes give an `autoSave` arrival time to be
      *   noticed and `autoSaveGraceMinutes` (2) time to run out.
      *
+     * * The two parks at home either side of a 40 m shuffle are **one
+     *   visit**, and must produce **one** stop between them, not two.
+     *   The vehicle never leaves home, so the second park extends the
+     *   first park's stop. A run that ends up with two rows at home has
+     *   found a bug.
+     *
      * It totals 8,180 m - 5.08 miles - and the return legs cancel the
      * outbound ones exactly, so the finishing coordinates are the
      * starting ones rather than merely close to them.
@@ -161,17 +167,28 @@ class SimulatedDistanceProvider : DistanceProvider {
         // to elapse.
         Phase(durationSeconds = 240, speedMph = 0.0, status = DistanceStatus.GOOD),
 
-        // Reposition: 40 m out and 40 m back, at walking-ish speed.
+        // Reposition: 40 m out, park again, 40 m back.
         //
-        // This is what gets save()'s trailing-stop retraction tested. The
-        // park above is a qualifying dwell but not yet a Stop, because a
-        // dwell is only written down when the vehicle *departs* it. Going
-        // 40 m - past the 30 m dwell anchor radius - is that departure,
-        // so the stop at home is recorded; coming straight back leaves
-        // the ride ending on the same coordinates it started on, which
-        // makes that stop's place the end place, which is exactly what
-        // save() must retract.
+        // Two things at once, both about what happens inside a place
+        // rather than between places.
+        //
+        // The moves are departures: a dwell is only written down when
+        // the vehicle leaves its anchor, and 40 m clears the 30 m dwell
+        // anchor radius while staying well inside home. So the first
+        // move ends the park above and writes the stop, and the second
+        // ends the park between them.
+        //
+        // Those two parks are one visit - the vehicle never left home -
+        // so the second must *extend* the first's stop rather than add
+        // another. One row spanning both parks and the shuffle between
+        // them is the whole point: before that, a visit anywhere large
+        // enough to move around in became a stop per move.
+        //
+        // Coming back to the start also leaves the ride ending where it
+        // began, which makes that stop's place the end place, which is
+        // what save()'s trailing-stop retraction is for.
         Phase(durationSeconds = 9, speedMph = 10.0, status = DistanceStatus.GOOD),
+        Phase(durationSeconds = 240, speedMph = 0.0, status = DistanceStatus.GOOD),
         Phase(durationSeconds = 9, speedMph = 10.0, status = DistanceStatus.GOOD, headingDegrees = RETURN_HEADING_DEGREES),
 
         // Settle. Under the threshold, so it adds no stop of its own.
