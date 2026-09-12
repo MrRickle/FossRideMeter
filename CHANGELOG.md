@@ -6,6 +6,17 @@ the shape of things may still change between minor versions.
 
 ## Unreleased
 
+### Changed
+
+- **A visit to a place is one stop, not one per time you moved.** Parking
+  at a store, going in, coming out, shifting the truck and going back in
+  used to record a separate stop each time — one real ride recorded eight
+  stops, seven of them at the same place. While you stay inside the
+  place, the visit's stop simply grows. Leaving it ends the visit, so
+  coming back later in the same ride still starts a new one. The visit's
+  stopped time now covers the whole time you were there, which is what
+  the stops list already showed as its length.
+
 ### Added
 
 - **The Places list shows each place's town or container too**, the

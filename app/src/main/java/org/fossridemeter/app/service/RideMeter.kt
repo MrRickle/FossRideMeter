@@ -149,6 +149,24 @@ class RideMeter(
     // time then, instead of the moment the button was pressed.
     private var dwellStop: Stop? = null
 
+    // The stop for the visit currently under way, and the place it is
+    // at, while the vehicle is still inside that place.
+    //
+    // A stop is written when a dwell ends, and a dwell ends whenever the
+    // vehicle moves more than STOP_DISTANCE_THRESHOLD_METERS from its
+    // anchor. Inside somewhere large - a store's car park, a yard - that
+    // happens repeatedly without leaving at all: park, go in, come out,
+    // move the truck, go back in. Each of those used to be its own stop,
+    // so one visit to Home Depot could be seven rows. A real ride on
+    // 2026-09-05 recorded eight, seven of them at one place.
+    //
+    // So while the vehicle stays inside the place, the visit's stop is
+    // extended rather than a new one written. Leaving the place closes
+    // it, which is what stops a second visit later in the same ride from
+    // being welded onto the first.
+    private var openVisit: Stop? = null
+    private var openVisitPlace: Place? = null
+
     // When the ride was paused, if it is. A dwell under way must not go
     // on accruing stopped time while the meter isn't running - a user
     // who pauses for lunch inside the dwell radius would come back to an
@@ -272,6 +290,8 @@ class RideMeter(
         dwellStop = null
         dwellPausedAt = 0L
         recordedStops.clear()
+        openVisit = null
+        openVisitPlace = null
 
         val now = System.currentTimeMillis()
         val startedAt = startedAtMillis.coerceIn(now - MAX_BACKDATE_MILLIS, now)
@@ -439,6 +459,8 @@ class RideMeter(
         )
 
         recordedStops.clear()
+        openVisit = null
+        openVisitPlace = null
         recordedStops.addAll(stops.sortedBy { it.sequence })
 
         // From the rows rather than from record.stoppedSeconds: the
@@ -692,6 +714,12 @@ class RideMeter(
         ) {
             val trailing = recordedStops.removeAt(recordedStops.lastIndex)
             stopDao.delete(trailing)
+
+            // The visit's row is gone, so nothing may extend it.
+            if (openVisit?.id == trailing.id) {
+                openVisit = null
+                openVisitPlace = null
+            }
             trailing.placeId?.let { touchedPlaceIds.add(it) }
 
             _ride.value = _ride.value.copy(
@@ -768,6 +796,8 @@ class RideMeter(
         dwellStop = null
         dwellPausedAt = 0L
         recordedStops.clear()
+        openVisit = null
+        openVisitPlace = null
         priorMeters = 0.0
         priorSeconds = 0L
 
@@ -812,6 +842,8 @@ class RideMeter(
         dwellStop = null
         dwellPausedAt = 0L
         recordedStops.clear()
+        openVisit = null
+        openVisitPlace = null
         priorMeters = 0.0
         priorSeconds = 0L
 
@@ -1086,6 +1118,23 @@ class RideMeter(
         if (location == null) return
 
         val now = System.currentTimeMillis()
+
+        // Once the vehicle is outside the place it was visiting, the
+        // visit is over: a later dwell there is a second visit and gets
+        // its own stop. Without this, leaving Home Depot, driving across
+        // town and coming back would extend the first stop across the
+        // whole round trip.
+        openVisitPlace?.let { visited ->
+            val away = DistanceUtil.haversineMeters(
+                visited.latitude, visited.longitude,
+                location.latitude, location.longitude,
+            )
+            if (away > visited.radiusMeters) {
+                openVisit = null
+                openVisitPlace = null
+            }
+        }
+
         val anchor = dwellAnchor
 
         if (anchor == null) {
@@ -1135,12 +1184,30 @@ class RideMeter(
                 recordedStops.isEmpty() && place.id == _ride.value.startPlaceId
 
             if (!isStartPlace) {
-                recordStop(
-                    location = anchor,
-                    place = place,
-                    startTime = dwellAnchorTime,
-                    endTime = now,
-                )
+
+                val open = openVisit
+
+                if (open != null && open.placeId == place.id) {
+                    // Same place, never left: one visit, so the stop it
+                    // already has grows to cover this dwell as well. Its
+                    // span then includes the minutes spent moving about
+                    // inside - which is what the stops list has always
+                    // displayed as the length of a visit, and what the
+                    // billed stopped time now agrees with.
+                    extendStop(open, now)
+
+                    _ride.value = _ride.value.copy(
+                        stoppedSeconds = stoppedSecondsNow(),
+                    )
+                    persistRideNow()
+                } else {
+                    recordStop(
+                        location = anchor,
+                        place = place,
+                        startTime = dwellAnchorTime,
+                        endTime = now,
+                    )
+                }
             }
         }
 
@@ -1217,7 +1284,7 @@ class RideMeter(
      * arrived somewhere, and a stale copy there would answer that with
      * the wrong times.
      */
-    private suspend fun extendStop(stop: Stop, endTime: Long) {
+    private suspend fun extendStop(stop: Stop, endTime: Long): Stop {
 
         val extended = stop.copy(endTime = endTime)
         stopDao.update(extended)
@@ -1226,6 +1293,9 @@ class RideMeter(
         if (index >= 0) recordedStops[index] = extended
 
         dwellStop = if (dwellStop?.id == stop.id) extended else dwellStop
+        if (openVisit?.id == stop.id) openVisit = extended
+
+        return extended
     }
 
     /**
@@ -1251,6 +1321,9 @@ class RideMeter(
 
         stopDao.insert(stop)
         recordedStops.add(stop)
+
+        openVisit = stop
+        openVisitPlace = place
 
         // The most recent place we know the vehicle actually sat at is
         // the best answer available for "where does this ride end?"
