@@ -800,6 +800,26 @@ again — written to the database at that moment, so the stop list is real
 from the first stop onward. A trailing stop at the same place the ride
 ended is retracted at save rather than counted twice.
 
+**One visit is one stop.** A dwell ends the moment the vehicle moves 30 m
+from its anchor, which somewhere large — a store's car park, a yard —
+happens over and over without leaving: park, go in, come out, shift the
+truck, go back in. Each of those used to be its own stop; one real ride
+recorded eight, seven of them at one place. While the vehicle stays
+inside the place, the visit's stop is extended instead.
+
+The visit ends when the vehicle is outside the place's radius, and the
+stop is stretched to that moment. So a visit's stopped time is the whole
+time between arriving and being gone — the minutes spent moving about
+inside it, and the drive from the parking space out to the road,
+included. Ending it at the last dwell would bill the way out as travel.
+
+Two consequences worth knowing. Stopped time for a visit is now the
+wall-clock span, which is what `StopGroup` has always *displayed* as a
+visit's length — before this the screen and the fare disagreed. And the
+radius, not a timer, is what separates visits: leave and come back later
+in the same ride and that is a second stop, not one welded across the
+round trip.
+
 ADD STOP on the live screen records one on the user's say-so instead of
 waiting for the dwell to be long enough and for movement to resume. It
 finalizes the dwell already under way — the same anchor, the same start

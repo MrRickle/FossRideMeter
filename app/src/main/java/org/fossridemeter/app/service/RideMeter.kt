@@ -1119,19 +1119,32 @@ class RideMeter(
 
         val now = System.currentTimeMillis()
 
-        // Once the vehicle is outside the place it was visiting, the
-        // visit is over: a later dwell there is a second visit and gets
-        // its own stop. Without this, leaving Home Depot, driving across
-        // town and coming back would extend the first stop across the
-        // whole round trip.
+        // Leaving the place ends the visit, and the visit lasts until
+        // then - so the stop is stretched to this moment first.
+        //
+        // A dwell ends the instant the vehicle moves 30 m from its
+        // anchor, which inside a car park is when it begins rolling
+        // towards the exit, not when it reaches the road. Closing the
+        // stop there would leave the drive out of the place billed as
+        // travel. The visit is the whole time between arriving somewhere
+        // and being gone from it.
+        //
+        // Ending it here also keeps a later dwell at the same place a
+        // second visit rather than an extension of the first: without
+        // it, leaving Home Depot, crossing town and coming back would be
+        // one stop spanning the round trip.
         openVisitPlace?.let { visited ->
             val away = DistanceUtil.haversineMeters(
                 visited.latitude, visited.longitude,
                 location.latitude, location.longitude,
             )
             if (away > visited.radiusMeters) {
+                openVisit?.let { extendStop(it, now) }
                 openVisit = null
                 openVisitPlace = null
+
+                _ride.value = _ride.value.copy(stoppedSeconds = stoppedSecondsNow())
+                persistRideNow()
             }
         }
 
