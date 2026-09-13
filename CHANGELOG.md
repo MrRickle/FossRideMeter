@@ -4,7 +4,7 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
-## Unreleased
+## 0.1.6 — 2026-09-13
 
 ### Changed
 
@@ -14,8 +14,9 @@ the shape of things may still change between minor versions.
   stops, seven of them at the same place. While you stay inside the
   place, the visit's stop simply grows. Leaving it ends the visit, so
   coming back later in the same ride still starts a new one. The visit's
-  stopped time now covers the whole time you were there, which is what
-  the stops list already showed as its length.
+  stopped time now covers the whole time you were there — from arriving
+  until you are clear of the place, the drive out to the road included —
+  which is what the stops list already showed as its length.
 
 ### Added
 
