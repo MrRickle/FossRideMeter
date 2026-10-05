@@ -74,7 +74,7 @@ fun List<Stop>.groupConsecutiveByPlace(): List<StopGroup> {
         val current = grouped.lastOrNull()
         val continues = stop.placeId != null && current?.last()?.placeId == stop.placeId
 
-        if (continues && current != null) {
+        if (continues) {
             current.add(stop)
         } else {
             grouped.add(mutableListOf(stop))

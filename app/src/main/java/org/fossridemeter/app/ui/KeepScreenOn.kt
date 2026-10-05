@@ -22,7 +22,6 @@
  */
 package org.fossridemeter.app.ui
 
-import android.app.Activity
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -32,7 +31,7 @@ import androidx.activity.compose.LocalActivity
 fun KeepScreenOn(
     keepScreenOn: Boolean
 ) {
-    val activity = LocalActivity.current as? Activity ?: return
+    val activity = LocalActivity.current ?: return
 
     DisposableEffect(keepScreenOn) {
 
