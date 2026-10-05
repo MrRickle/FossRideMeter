@@ -33,7 +33,9 @@ the floating amount bubble can work.
 * **Notifications** — the ongoing notification while a ride is metering.
   Android requires it for work that continues in the background.
 * **Display over other apps** — the floating amount bubble, so you can
-  see the fare while using something else. Optional.
+  see the fare while using something else. Optional. During a ride the
+  notification has **Hide amount** / **Show amount**, or **Allow amount**
+  if this permission is off.
 * **Ignore battery optimisation** — optional, and worth it if you use
   automatic rides. Without it Android can stretch the checks between
   looking for you leaving a place, and a start is missed.
