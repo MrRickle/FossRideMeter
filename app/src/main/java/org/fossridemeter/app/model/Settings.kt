@@ -100,6 +100,13 @@ data class Settings(
     // stream, so silencing the phone silences these too.
     val soundEnabled: Boolean = true,
 
+    // The floating amount drawn over other apps while a ride is live and
+    // the app is in the background. On by default, since a fresh install
+    // asks for the overlay permission precisely to show it. Switched from
+    // the ride notification's button rather than from Settings, because
+    // Settings is locked mid-ride and mid-ride is when it's in the way.
+    val showAmountBubble: Boolean = true,
+
     // What each action sounds like. Null means the built-in tone, which
     // is what a fresh install gets: it needs no assets and the five are
     // already distinct from each other. A non-null value is a

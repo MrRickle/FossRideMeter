@@ -55,6 +55,7 @@ import android.widget.TextView
 import kotlinx.coroutines.withContext
 import org.fossridemeter.app.MainActivity
 import org.fossridemeter.app.util.displayAmount
+import android.net.Uri
 import android.provider.Settings as AndroidProvider
 import org.fossridemeter.app.data.SettingsRepository
 import android.content.res.Configuration
@@ -92,7 +93,31 @@ class RideTrackingService : Service() {
 
     private var bubbleParams: WindowManager.LayoutParams? = null
 
+    // Whether the app has asked for the bubble - it is in the background
+    // with a ride live - as opposed to whether one is on screen. They
+    // differ while Settings.showAmountBubble is off, and remembering the
+    // ask is what lets "Show amount" bring the bubble back straight away
+    // rather than on the next trip out of the app.
+    private var bubbleWanted = false
+
+    /** The app went to the background with a ride live. */
     fun showBubble() {
+        bubbleWanted = true
+        if (currentSettings.showAmountBubble) addBubble()
+    }
+
+    /** The app came back, or the ride is over. */
+    fun hideBubble() {
+        bubbleWanted = false
+        removeBubble()
+    }
+
+    /** Main thread only, like everything that touches the window manager. */
+    private fun syncBubble() {
+        if (bubbleWanted && currentSettings.showAmountBubble) addBubble() else removeBubble()
+    }
+
+    private fun addBubble() {
         if (bubbleView != null) return
         if (!AndroidProvider.canDrawOverlays(this)) return
 
@@ -197,7 +222,7 @@ class RideTrackingService : Service() {
         }
     }
 
-    fun hideBubble() {
+    private fun removeBubble() {
         bubbleView?.let { view ->
             try {
                 if (view.parent != null) {
@@ -232,6 +257,7 @@ class RideTrackingService : Service() {
         // point of it being automatic.
         const val ACTION_RESUME = "org.fossridemeter.app.action.RESUME"
         const val ACTION_SAVE_NOW = "org.fossridemeter.app.action.SAVE_NOW"
+        const val ACTION_TOGGLE_BUBBLE = "org.fossridemeter.app.action.TOGGLE_BUBBLE"
     }
 
     private val binder = LocalBinder()
@@ -316,7 +342,13 @@ class RideTrackingService : Service() {
 
         serviceScope.launch {
             settingsRepository.settings.collect { settings ->
+                val bubbleChanged = settings.showAmountBubble != currentSettings.showAmountBubble
                 currentSettings = settings
+                if (bubbleChanged) {
+                    withContext(Dispatchers.Main) { syncBubble() }
+                    // The button's label says which way it will switch.
+                    refreshNotification()
+                }
                 // Cadence and accuracy are read at start(), so a change
                 // to either has to re-decide the watcher rather than
                 // waiting for the ride status to happen to move.
@@ -330,6 +362,11 @@ class RideTrackingService : Service() {
                 val amount = AmountCalculator.calculate(ride, currentSettings).totalAmount
                 withContext(Dispatchers.Main) {
                     bubbleTextView?.text = displayAmount(amount)
+                    // Wanted but not drawn means the overlay permission
+                    // was missing last time; this picks it up within a
+                    // tick of the user granting it, without leaving and
+                    // re-entering the app.
+                    if (bubbleWanted && bubbleView == null) syncBubble()
                 }
             }
         }
@@ -799,6 +836,42 @@ class RideTrackingService : Service() {
             )
         }
 
+        // The bubble only ever shows during a ride, so the switch for it
+        // only shows then too. It lives here because this is reachable
+        // with the bubble on screen and the app closed, which is exactly
+        // when it is in the way - and Settings is locked mid-ride.
+        //
+        // Without the overlay permission neither label would do anything,
+        // and nothing would say why. Android's own "displaying over other
+        // apps" notification has a switch that revokes it, sitting right
+        // beside this button, so losing it mid-ride is the likely case
+        // rather than a rare one. The button then opens the screen that
+        // grants it - directly, as an activity, because Android 12 and up
+        // won't let a service start one on a notification's behalf.
+        if (status != RideStatus.READY) {
+            if (!AndroidProvider.canDrawOverlays(this)) {
+                builder.addAction(
+                    0,
+                    "Allow amount",
+                    PendingIntent.getActivity(
+                        this,
+                        7,
+                        Intent(
+                            AndroidProvider.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:$packageName"),
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                    ),
+                )
+            } else {
+                builder.addAction(
+                    0,
+                    if (currentSettings.showAmountBubble) "Hide amount" else "Show amount",
+                    serviceAction(ACTION_TOGGLE_BUBBLE, requestCode = 6),
+                )
+            }
+        }
+
         return builder.build()
     }
 
@@ -846,6 +919,15 @@ class RideTrackingService : Service() {
                     save()
                     reconcileWatching()
                 }
+            }
+            ACTION_TOGGLE_BUBBLE -> {
+                val show = !currentSettings.showAmountBubble
+                EventLog.log("RideTrackingService", "Amount bubble ${if (show) "shown" else "hidden"} from notification")
+                // Saved, not just applied: the collector above sees the
+                // change, shows or hides the bubble, and relabels the
+                // button, so a choice made here also holds for the next
+                // ride.
+                serviceScope.launch { settingsRepository.setShowAmountBubble(show) }
             }
         }
 

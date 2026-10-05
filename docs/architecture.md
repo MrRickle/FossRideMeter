@@ -145,6 +145,20 @@ survives the Activity being backgrounded or destroyed.
 `SYSTEM_ALERT_WINDOW`) shown while the app is backgrounded mid-ride. The
 notification and bubble are plain Android Views, not Compose.
 
+The bubble can be switched off with the ongoing notification's
+**Hide amount** / **Show amount** button, shown while a ride is RUNNING or
+PAUSED. It is a saved preference, `Settings.showAmountBubble` (default on),
+written by `SettingsRepository.setShowAmountBubble()` alone so the service
+can't overwrite other settings with stale ones. It's on the notification,
+not in Settings, because Settings is locked mid-ride. The service keeps
+`bubbleWanted` (the app is backgrounded with a ride live) separate from the
+bubble being on screen, so switching it back on shows it immediately.
+Without the overlay permission the button reads **Allow amount** instead and
+opens the permission screen. Android's own "displaying over other apps"
+notification can revoke that permission mid-ride, and both labels would
+otherwise do nothing. Every ride tick retries a wanted-but-undrawn bubble,
+so granting the permission shows it within a second.
+
 The notification is re-posted by `refreshNotification()`, which runs when
 `tracker.ride` emits, when `autoState` emits a **distinct** value, and in
 `pause()` and `quit()`. That matters because of what it doesn't cover:

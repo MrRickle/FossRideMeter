@@ -43,7 +43,7 @@ Every `.kt` file carries the GPL SPDX header from `license-header.txt`. `./add_l
 
 `RideTrackingService` (foreground, `location` type, declared in the manifest) owns a `RideMeter` instance and outlives the Activity, so tracking survives backgrounding. `RideViewModel` binds to it via `LocalBinder`, mirrors the service's `ride` / `gpsInfo` StateFlows into its own, and forwards every command (`start`/`pause`/`resume`/`save`/`cancel`/`quit`). `requireService()` throws if called before the bind completes — UI must call `startServiceIfNeeded()` first.
 
-The service also owns the draggable floating "bubble" overlay (`TYPE_APPLICATION_OVERLAY`, needs `SYSTEM_ALERT_WINDOW`) shown while the app is backgrounded mid-ride, and the ongoing notification. Those are plain Android Views, not Compose.
+The service also owns the draggable floating "bubble" overlay (`TYPE_APPLICATION_OVERLAY`, needs `SYSTEM_ALERT_WINDOW`) shown while the app is backgrounded mid-ride, and the ongoing notification. Those are plain Android Views, not Compose. The notification's **Hide amount** / **Show amount** button (RUNNING or PAUSED only) flips `Settings.showAmountBubble`, a saved preference — it lives there because Settings is locked mid-ride. Without the overlay permission it reads **Allow amount** and opens the permission screen instead.
 
 `RideMeter` (`service/RideMeter.kt`) is the actual state machine and the densest file in the repo — its comments document the stop-detection and place-resolution reasoning; read them before touching that logic.
 
