@@ -390,8 +390,8 @@ class RideTrackingService : Service() {
      * wasn't. Everything needed to recover it was already in the
      * database; nothing looked.
      *
-     * The ride comes back PAUSED - see RideMeter.restore for why the gap
-     * makes that the only honest status.
+     * The ride comes back in the state it was in, or PAUSED after a long
+     * gap - see RideMeter.restore.
      */
     private suspend fun restoreInterruptedRide() {
 

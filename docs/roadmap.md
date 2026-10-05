@@ -186,7 +186,8 @@ outside users yet.
 * Service creation and the previous process's exit reason
   (`ApplicationExitInfo`) go in the event log.
 * A ride interrupted by a process kill is picked up at the next service
-  create and comes back paused.
+  create in the state it was in; a running ride gone over an hour comes
+  back paused instead.
 
 ## Next
 

@@ -369,14 +369,15 @@ class RideMeter(
      * without warning and, on a phone under memory pressure, without
      * anything being wrong. See LiveRideStore for how it is recognised.
      *
-     * It comes back **PAUSED**, never RUNNING. Between the death and now
-     * the vehicle may have driven fifty miles or sat still, and nothing
-     * recorded which: the providers stopped with the process. Resuming
-     * metering would quietly bill a gap this app knows nothing about,
-     * where pausing states exactly what is known - the ride ran to its
-     * last persisted moment - and leaves the user to resume it or save
-     * it. A paused ride is already complete and saveable, which is the
-     * whole reason there is no FINISHED state.
+     * It comes back doing what it was doing, which [wasRunning] carries
+     * from LiveRideStore. The gap costs distance - the providers stopped
+     * with the process, and nothing recovers what was driven - but not
+     * time: the app knows exactly how long it was gone, so a running ride
+     * resumes with the gap counted as ride time, and a paused ride stays
+     * paused with the gap counted as nothing. Past
+     * MAX_GAP_TO_RESUME_MILLIS a running ride comes back PAUSED instead;
+     * a paused ride is already complete and saveable, so the user can
+     * resume it or save it.
      *
      * [settings] supplies the fields a RideRecord doesn't carry; the
      * rates come from the record itself, because the rates a ride was

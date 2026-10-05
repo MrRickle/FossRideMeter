@@ -203,12 +203,17 @@ ride to reconcile:
 6. **`restore()`** — a ride the *previous* process was metering, picked
    up at service create. `LiveRideStore` holds the live ride's id outside
    the process, so a row still marked at startup is an interrupted ride
-   rather than a finished one. It comes back **PAUSED**: between the
-   death and now the vehicle may have driven fifty miles or sat still,
-   and nothing recorded which, so resuming would bill a gap the app knows
-   nothing about. What it did before the death is held in
-   `priorMeters`/`priorSeconds` and added to the providers' totals
-   if the user resumes, since the providers count from zero and no
+   rather than a finished one. It comes back in the state it was in -
+   the store keeps the status beside the id - and the gap counts as that
+   state: a running ride resumes and the downtime bills as ride time, a
+   paused ride stays paused and the downtime bills as nothing. What the
+   gap costs is distance, which no policy recovers; the time is known
+   exactly. A running ride gone longer than `MAX_GAP_TO_RESUME_MILLIS`
+   (one hour) is the exception: that is a force stop, a flat battery or
+   a reboot rather than a memory kill, and it comes back **PAUSED** with
+   Resume and Save on the notification. What the ride did before the
+   death is held in `priorMeters`/`priorSeconds` and added to the
+   providers' totals, since the providers count from zero and no
    instance survived to continue.
 7. **`save()`** — the single commit point, confirmed by the user first.
    Resolves the real end place, retracts a trailing stop that matches it
@@ -777,11 +782,12 @@ read plausibly as a distance and cost a drive to disambiguate.
 
 Service creation is logged too, with why the previous process ended
 directly after it (`util/ExitReasons.kt`, from `ApplicationExitInfo`,
-API 30+). A restart is not a neutral event here: the meter comes back
-`READY` with no memory of a ride that may still have been running, so the
-signature of a lost ride is a long gap in this log, then "Service
-created", then the watcher arming for a *departure* while the vehicle is
-parked somewhere else entirely. Whether that was a crash, a low-memory
+API 30+). A restart is not a neutral event here: a ride that was
+running loses the distance driven while the process was dead, and after
+a long gap comes back paused (see `restore()` above), so the signature
+of an interrupted ride is a gap in this log, then "Service created",
+then the restore line saying what it was and what it came back as.
+Whether that was a crash, a low-memory
 kill, an OEM freeze, or the user force-stopping the app decides which
 fix it needs, and only the platform knows.
 
