@@ -39,7 +39,7 @@ org.fossridemeter.app
 │   ├── RideMeter.kt             the ride state machine
 │   ├── PlaceWatcher.kt          place-crossing detection (LocationManager)
 │   ├── AutoState.kt             Off / Watching… / Suspended / PendingSave
-│   ├── BootReceiver.kt          restarts watching after a reboot
+│   ├── BootReceiver.kt          restarts watching after a reboot or an update
 │   ├── NotificationDismissedReceiver.kt  logs the ongoing notification
 │   │                            being swiped away
 │   ├── DistanceProvider.kt      interface: distance + gpsInfo flows
@@ -816,12 +816,18 @@ It's read back from the Advanced screen, which can also clear it. The same infor
 *Watch status* in `ui.md`). `EventLog` swallows its own failures: a logger that can break
 the thing it observes is worse than no logger.
 
-### Reboots and permissions
+### Reboots, updates and permissions
 
-`BootReceiver` restarts the service after a reboot, but only if some place
-is actually flagged. Auto-start exists for the mornings the user forgets
+`BootReceiver` restarts the service after a reboot, and after the app is
+updated, but only if something wants it: a flagged place, or a ride that
+was in progress (`LiveRideStore` still holds its id, and the service
+restores it on create). Auto-start exists for the mornings the user forgets
 the app, and a phone that rebooted overnight would otherwise have forgotten
-too.
+too. An update is the same gap: installing one kills the process, and until
+`MY_PACKAGE_REPLACED` was handled nothing came back until the app was next
+opened. That broadcast is sent only to the updated app, and like
+`BOOT_COMPLETED` it is allowed to start a foreground service from the
+background.
 
 This is what forces `ACCESS_BACKGROUND_LOCATION`. `location` is permitted
 as a foreground service type from `BOOT_COMPLETED`, but *starting* is not

@@ -100,7 +100,7 @@ outside users yet.
 * `PlaceWatcher` on the platform `LocationManager` — no Play Services —
   with coarse fixes escalating to GPS only near a boundary, and crossings
   confirmed over time and count before they're believed.
-* Watching survives reboot (`BootReceiver`) and needs
+* Watching survives a reboot or an app update (`BootReceiver`) and needs
   `ACCESS_BACKGROUND_LOCATION`, requested when a place is first flagged.
 * No master switch: flagging a place is the switch.
 

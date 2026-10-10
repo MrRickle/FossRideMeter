@@ -31,18 +31,28 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.fossridemeter.app.data.AppRepository
+import org.fossridemeter.app.data.LiveRideStore
 import org.fossridemeter.app.util.EventLog
 
 /**
- * Brings watching back after a reboot.
+ * Brings watching back after a reboot, and after the app is updated.
  *
  * Without this the feature has a hole big enough to swallow it: auto-start
  * is for the mornings the user forgets the app exists, and a phone that
  * rebooted overnight would have forgotten too, so the first ride of the
  * day would go unmetered exactly when it was most relied on.
  *
- * Starts nothing unless a place actually asks for it. A user who has
- * flagged no places gets no service and no notification at boot.
+ * An update is the same hole. Installing one kills the process, and
+ * nothing brought the service back until the user next opened the app -
+ * on 2026-10-10 the log simply stopped at the install. Android sends
+ * MY_PACKAGE_REPLACED to the updated app alone, and it is on the same
+ * short list as BOOT_COMPLETED of broadcasts allowed to start a
+ * foreground service from the background.
+ *
+ * Starts nothing unless something asks for it: a flagged place, or a
+ * ride that was being metered when the process went (LiveRideStore holds
+ * its id outside the process, and the service restores it on create). A
+ * user with neither gets no service and no notification.
  *
  * Note that `location` is permitted as a foreground service type from
  * BOOT_COMPLETED (unlike dataSync, camera, mediaPlayback, phoneCall,
@@ -57,10 +67,14 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
 
         if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
-            intent.action != Intent.ACTION_LOCKED_BOOT_COMPLETED
+            intent.action != Intent.ACTION_LOCKED_BOOT_COMPLETED &&
+            intent.action != Intent.ACTION_MY_PACKAGE_REPLACED
         ) {
             return
         }
+
+        val reason =
+            if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) "App updated" else "Boot completed"
 
         val appContext = context.applicationContext
         val pendingResult = goAsync()
@@ -68,10 +82,15 @@ class BootReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val places = AppRepository.getPlaceDao(appContext).getAllOnce()
-                val wanted = places.any { it.autoStart || it.autoSave }
+                val watching = places.any { it.autoStart || it.autoSave }
+                val rideLive = LiveRideStore(appContext).liveRideId() != null
+                val wanted = watching || rideLive
 
                 EventLog.init(appContext)
-                EventLog.log("BootReceiver", "Boot completed, watching wanted=$wanted")
+                EventLog.log(
+                    "BootReceiver",
+                    "$reason, watching wanted=$watching, ride in progress=$rideLive"
+                )
 
                 if (wanted) {
                     ContextCompat.startForegroundService(
@@ -80,7 +99,7 @@ class BootReceiver : BroadcastReceiver() {
                     )
                 }
             } catch (e: Exception) {
-                Log.e("BootReceiver", "Failed to restart watching after boot", e)
+                Log.e("BootReceiver", "Failed to restart watching ($reason)", e)
             } finally {
                 pendingResult.finish()
             }
