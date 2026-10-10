@@ -157,6 +157,12 @@ class RideViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setShowUnnamedPlaces(show: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setShowUnnamedPlaces(show)
+        }
+    }
+
 
     /**
      * Runs [action] on the bound service, or records that it couldn't.

@@ -107,6 +107,14 @@ data class Settings(
     // Settings is locked mid-ride and mid-ride is when it's in the way.
     val showAmountBubble: Boolean = true,
 
+    // Whether the Places list includes the placeholders a ride creates
+    // where it stops somewhere unnamed. Off by default: places are named
+    // from a ride's stops or added with +, so the placeholders are clutter
+    // there. They are still matched, linked and exported either way -
+    // this hides rows, nothing else. Toggled from the Places overflow
+    // menu rather than Settings, where the list it changes is.
+    val showUnnamedPlaces: Boolean = false,
+
     // What each action sounds like. Null means the built-in tone, which
     // is what a fresh install gets: it needs no assets and the five are
     // already distinct from each other. A non-null value is a

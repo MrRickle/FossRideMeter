@@ -63,6 +63,14 @@ private val NamedWidth = 80.dp
 private val LockedWidth = 80.dp
 private val AutoWidth = 80.dp
 
+/**
+ * The places the list shows. Unnamed placeholders are left out unless
+ * the user asked for them; Select All goes through this too, so a
+ * selection can never include rows nobody could see.
+ */
+fun shownPlaces(places: List<Place>, settings: Settings): List<Place> =
+    if (settings.showUnnamedPlaces) places else places.filter { it.isNamed }
+
 @Composable
 fun PlacesScreen(
     places: List<Place>,
@@ -108,7 +116,9 @@ fun PlacesScreen(
     var sortedBy by rememberSaveable { mutableStateOf<PlaceSort?>(null) }
     var ascending by rememberSaveable { mutableStateOf(true) }
 
-    val sorted = places.sortedByColumn(sortedBy, ascending) { key ->
+    // Names are composed from every place above, hidden or not: a
+    // name's town is a place like any other.
+    val sorted = shownPlaces(places, settings).sortedByColumn(sortedBy, ascending) { key ->
         when (key) {
             // By the name as shown, so sorting by name puts everything
             // in one town together rather than scattering five

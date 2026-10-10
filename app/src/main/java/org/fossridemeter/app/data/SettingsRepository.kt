@@ -63,6 +63,7 @@ class SettingsRepository(
         val autoWatchAccuracy = stringPreferencesKey("auto_watch_accuracy")
         val soundEnabled = booleanPreferencesKey("sound_enabled")
         val showAmountBubble = booleanPreferencesKey("show_amount_bubble")
+        val showUnnamedPlaces = booleanPreferencesKey("show_unnamed_places")
         val startSoundUri = stringPreferencesKey("start_sound_uri")
         val pauseSoundUri = stringPreferencesKey("pause_sound_uri")
         val resumeSoundUri = stringPreferencesKey("resume_sound_uri")
@@ -128,6 +129,8 @@ class SettingsRepository(
                     preferences[Keys.soundEnabled] ?: defaults.soundEnabled,
                 showAmountBubble =
                     preferences[Keys.showAmountBubble] ?: defaults.showAmountBubble,
+                showUnnamedPlaces =
+                    preferences[Keys.showUnnamedPlaces] ?: defaults.showUnnamedPlaces,
                 // Absent means the built-in tone, so these stay null
                 // rather than defaulting to anything.
                 startSoundUri = preferences[Keys.startSoundUri],
@@ -174,6 +177,8 @@ class SettingsRepository(
                 settings.soundEnabled
             preferences[Keys.showAmountBubble] =
                 settings.showAmountBubble
+            preferences[Keys.showUnnamedPlaces] =
+                settings.showUnnamedPlaces
 
             // A null is the absence of a choice, not a value to store -
             // writing one would mean "no sound" rather than "the built-in
@@ -200,6 +205,13 @@ class SettingsRepository(
     suspend fun setShowAmountBubble(show: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[Keys.showAmountBubble] = show
+        }
+    }
+
+    /** One key, for the Places menu's toggle - see setShowAmountBubble. */
+    suspend fun setShowUnnamedPlaces(show: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[Keys.showUnnamedPlaces] = show
         }
     }
 }

@@ -695,6 +695,15 @@ back the stops it covers, because the tighter radius wins.
 
 The Places table columns are: Name, Location, Radius, Named, Locked, Auto.
 
+The table lists **named places only** unless **Show unnamed places** is
+ticked in the Places overflow menu (`Settings.showUnnamedPlaces`, saved,
+off by default). Places get named from a ride's stops or added with +, so
+the geohash placeholders are only clutter in this list. Hiding them is
+display-only: they still match, link and recompute exactly as before, and
+the overflow-menu Export still writes every place, because it is a backup.
+**All** in selection mode selects only the rows on screen (`shownPlaces`),
+so selecting all and deleting can't take hidden rows with it.
+
 A place can be deleted two ways, the same two a ride can: from the editor
 opened by tapping its row, and through multi-select (see *Selecting
 rows*). The editor's **Delete** sits left of Cancel, tinted with the

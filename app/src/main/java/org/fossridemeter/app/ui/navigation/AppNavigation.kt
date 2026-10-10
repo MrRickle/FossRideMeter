@@ -50,6 +50,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -98,6 +99,7 @@ import org.fossridemeter.app.ui.LicenseScreen
 import org.fossridemeter.app.ui.RidesScreen
 import org.fossridemeter.app.ui.PlacesScreen
 import org.fossridemeter.app.ui.PlacesViewModel
+import org.fossridemeter.app.ui.shownPlaces
 import org.fossridemeter.app.ui.SettingsScreen
 import org.fossridemeter.app.util.downloadsPickerUri
 import org.fossridemeter.app.util.fileNameFromUri
@@ -653,7 +655,10 @@ fun AppNavigation() {
                                         )
                                     } else {
                                         placesViewModel.selection.selectAll(
-                                            placesViewModel.places.value.map { it.id }
+                                            shownPlaces(
+                                                placesViewModel.places.value,
+                                                rideViewModel.settings.value,
+                                            ).map { it.id }
                                         )
                                     }
                                 }
@@ -776,6 +781,23 @@ fun AppNavigation() {
                                             } else {
                                                 placesExportLauncher.launch("places.json")
                                             }
+                                        }
+                                    )
+                                }
+
+                                // Places only: the placeholders a ride
+                                // leaves where it stopped somewhere
+                                // unnamed. Export still writes them all.
+                                if (isPlaces) {
+                                    val showUnnamed = rideViewModel.settings.value.showUnnamedPlaces
+                                    DropdownMenuItem(
+                                        text = { Text("Show unnamed places") },
+                                        trailingIcon = {
+                                            Checkbox(checked = showUnnamed, onCheckedChange = null)
+                                        },
+                                        onClick = {
+                                            menuExpanded = false
+                                            rideViewModel.setShowUnnamedPlaces(!showUnnamed)
                                         }
                                     )
                                 }
