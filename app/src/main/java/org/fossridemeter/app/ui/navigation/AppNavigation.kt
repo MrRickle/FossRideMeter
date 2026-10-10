@@ -805,6 +805,26 @@ fun AppNavigation() {
                                 HorizontalDivider()
                             }
 
+                            // The master switch for automatic rides, on
+                            // the screen whose status line says what it
+                            // is doing. Not in Settings: that is locked
+                            // mid-ride, and switching off mid-ride is
+                            // allowed - it cancels a countdown.
+                            if (currentRoute == Screen.Ride.route) {
+                                val autoOn = rideViewModel.settings.value.autoRidesEnabled
+                                DropdownMenuItem(
+                                    text = { Text("Auto start/stop rides") },
+                                    trailingIcon = {
+                                        Checkbox(checked = autoOn, onCheckedChange = null)
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        rideViewModel.setAutoRidesEnabled(!autoOn)
+                                    }
+                                )
+                                HorizontalDivider()
+                            }
+
                             DropdownMenuItem(
                                 text = { Text("Quit") },
                                 onClick = {
@@ -872,18 +892,24 @@ fun AppNavigation() {
                     // including how to stop watching for good, which is
                     // otherwise only findable by knowing it exists.
                     text = {
+                        // Flagged places only keep working while the
+                        // master switch is on.
+                        val autoOn = wantsWatching &&
+                            rideViewModel.settings.value.autoRidesEnabled
                         Text(
-                            if (wantsWatching || ride.status != RideStatus.READY) {
+                            if (autoOn || ride.status != RideStatus.READY) {
                                 "Quit will close this app, however if the meter is running " +
-                                    "it will continue to run " +
-                                    "and if there are any places with " +
-                                    "auto-start or auto-save set they will continue to work.\n" +
-                                    if (wantsWatching) {
+                                    "it will continue to run" +
+                                    (if (autoOn) {
+                                        " and if there are any places with " +
+                                            "auto-start or auto-save set they will continue to work"
+                                    } else "") +
+                                    ".\n" +
+                                    if (autoOn) {
                                         "To stop auto functions you have two options \n" +
-                                            "1: Make sure no place has auto-start or auto-save on.\n" +
-                                            "2: In Android's app settings force stop " +
-                                            "FossRideMeter - all automations will be stopped " +
-                                            "until you open the app again."
+                                            "1: Uncheck Auto start/stop rides in the menu " +
+                                            "on the home screen.\n" +
+                                            "2: Make sure no place has auto-start or auto-save on."
                                     } else {
                                         "To end the ride, save or cancel it before quitting."
                                     }

@@ -82,6 +82,7 @@ it a few minutes later, unless you resume first.
 
 * Setting either switch on for any place turns watching on, 
 * Clearing both switches for every place turns watching off.
+* Setting the home screen overflow menu "Auto start/stop" off disables all Auto start/stops.
 
 ## Backing up
 

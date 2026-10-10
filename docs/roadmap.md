@@ -102,7 +102,7 @@ outside users yet.
   confirmed over time and count before they're believed.
 * Watching survives a reboot or an app update (`BootReceiver`) and needs
   `ACCESS_BACKGROUND_LOCATION`, requested when a place is first flagged.
-* No master switch: flagging a place is the switch.
+* One master switch, **Auto start/stop rides** in the home screen menu; flagging a place is what it watches.
 
 ### Phase 5d — Import / export
 

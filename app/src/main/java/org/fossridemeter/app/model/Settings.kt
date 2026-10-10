@@ -115,6 +115,15 @@ data class Settings(
     // menu rather than Settings, where the list it changes is.
     val showUnnamedPlaces: Boolean = false,
 
+    // The master switch for automatic rides. Off means the app does
+    // nothing on its own: no departure watch (so no GPS while no ride is
+    // running), no auto-save on arrival, no auto-resume - the places keep
+    // their flags, and switching back on picks them all up again. On by
+    // default. Lives in the home screen's overflow menu, not Settings,
+    // because Settings is locked mid-ride. See "Automatic Rides Have a
+    // Master Switch" in decisions.md.
+    val autoRidesEnabled: Boolean = true,
+
     // What each action sounds like. Null means the built-in tone, which
     // is what a fresh install gets: it needs no assets and the five are
     // already distinct from each other. A non-null value is a

@@ -332,7 +332,43 @@ the user" turned out to argue the other way: a user who pauses at a
 stop and drives off wants the ride to continue, and standing down is what
 fought them.
 
-## Decision: Watching Has No Master Switch
+## Decision: Automatic Rides Have a Master Switch *(supersedes the below)*
+
+**Auto start/stop rides**, a checkbox in the home screen's overflow menu
+(`Settings.autoRidesEnabled`, on by default), turns every automatic
+behaviour off at once without touching the places' flags. Off means the
+app does nothing on its own:
+
+* no departure watch, so no GPS at all while no ride is running;
+* no auto-save on arrival and no auto-resume on departure;
+* a countdown already running is cancelled, and the ride stays paused
+  for the user to save or resume by hand;
+* `quit()` stops the service unless a ride is in progress, and
+  `BootReceiver` doesn't start it for flagged places after a reboot or
+  an update.
+
+Turning it back on picks up every flagged place as it was. Rides by hand
+work the same either way.
+
+The user asked for it, to save battery on days the feature isn't
+wanted, rather than clearing and later re-setting the flags on every
+place that has them. That re-setting is the real cost the old decision
+accepted, and it turned out to be the larger one: clearing flags loses
+configuration, and so does forgetting to put them back.
+
+The risk the decision below names is still real: a switch left off the
+night before is off the morning it matters. It is answered by making off
+**visible**, not by leaving the switch out. The live screen's status line
+reads `Automatic rides off - turn on in the menu`, and the notification
+says the same whenever the service is up. `AutoState.Disabled` is its own
+state, separate from `Off` ("no place is flagged"), so the screen can say
+which switch is responsible.
+
+It lives in the home screen's menu rather than Settings because Settings
+is locked mid-ride, and switching off mid-ride is allowed; it is the
+screen whose status line reports the result.
+
+## Decision: Watching Has No Master Switch *(superseded)*
 
 Whether the app is watching for place crossings is decided entirely by
 whether any place carries `autoStart` or `autoSave`. There is no global

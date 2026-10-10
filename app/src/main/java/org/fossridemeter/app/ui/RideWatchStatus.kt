@@ -72,6 +72,7 @@ fun RideWatchStatus(
         Text(
             text = when (autoState) {
                 AutoState.Off -> "Auto off - no place is flagged"
+                AutoState.Disabled -> "Automatic rides off - turn on in the menu"
                 // Named where it can be: "will resume on leaving Home" is
                 // the whole answer, and the place is only knowable from
                 // the fix - the state itself doesn't carry one.

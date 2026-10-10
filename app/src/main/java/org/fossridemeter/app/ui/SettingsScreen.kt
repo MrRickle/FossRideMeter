@@ -583,26 +583,15 @@ private fun SettingsAutoSection(
 
     Spacer(Modifier.height(6.dp))
 
-    // There is no on/off switch here on purpose. Which places start and
-    // save rides is set per place, in the place editor, and watching is
-    // on whenever any place asks for it - a master switch would have to
-    // be remembered, and the whole point is the mornings it wouldn't be.
-    // These two are the cost and the safety margin of that, nothing more.
-    //
-    // Saying so here is the concession to that: the switch a user comes
-    // looking for is missing, and a settings screen that simply doesn't
-    // mention it reads as an oversight rather than a decision. The force
-    // stop route is included because it is the honest answer to "stop it
-    // for good without uninstalling" - a stopped package gets no
-    // BOOT_COMPLETED, so BootReceiver cannot re-arm it until the app is
-    // launched by hand.
+    // The master switch isn't here: Settings is locked mid-ride, and
+    // the switch is allowed then (it cancels a countdown). It lives in
+    // the home screen's overflow menu, and this says where, because
+    // Automatic is where a user comes looking for it.
     Text(
-        text = "Watching runs whenever any place has auto-start or auto-save " +
-            "set - there is no switch here, because a switch would have to be " +
-            "remembered. Clear those flags in the place editor to stop it. To " +
-            "hold it without changing places, force stop FossRideMeter in " +
-            "Android's app settings; it stays off, reboots included, until you " +
-            "open the app again.",
+        text = "Places with auto-start or auto-save set are watched while " +
+            "Auto start/stop rides is checked in the menu on the home screen. " +
+            "Uncheck it to stop all automatic rides and save battery; the " +
+            "places keep their settings.",
         style = MaterialTheme.typography.bodySmall
     )
 

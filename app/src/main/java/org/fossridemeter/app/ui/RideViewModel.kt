@@ -163,6 +163,12 @@ class RideViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun setAutoRidesEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.setAutoRidesEnabled(enabled)
+        }
+    }
+
 
     /**
      * Runs [action] on the bound service, or records that it couldn't.

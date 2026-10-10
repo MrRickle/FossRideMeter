@@ -64,6 +64,7 @@ class SettingsRepository(
         val soundEnabled = booleanPreferencesKey("sound_enabled")
         val showAmountBubble = booleanPreferencesKey("show_amount_bubble")
         val showUnnamedPlaces = booleanPreferencesKey("show_unnamed_places")
+        val autoRidesEnabled = booleanPreferencesKey("auto_rides_enabled")
         val startSoundUri = stringPreferencesKey("start_sound_uri")
         val pauseSoundUri = stringPreferencesKey("pause_sound_uri")
         val resumeSoundUri = stringPreferencesKey("resume_sound_uri")
@@ -131,6 +132,8 @@ class SettingsRepository(
                     preferences[Keys.showAmountBubble] ?: defaults.showAmountBubble,
                 showUnnamedPlaces =
                     preferences[Keys.showUnnamedPlaces] ?: defaults.showUnnamedPlaces,
+                autoRidesEnabled =
+                    preferences[Keys.autoRidesEnabled] ?: defaults.autoRidesEnabled,
                 // Absent means the built-in tone, so these stay null
                 // rather than defaulting to anything.
                 startSoundUri = preferences[Keys.startSoundUri],
@@ -179,6 +182,8 @@ class SettingsRepository(
                 settings.showAmountBubble
             preferences[Keys.showUnnamedPlaces] =
                 settings.showUnnamedPlaces
+            preferences[Keys.autoRidesEnabled] =
+                settings.autoRidesEnabled
 
             // A null is the absence of a choice, not a value to store -
             // writing one would mean "no sound" rather than "the built-in
@@ -212,6 +217,13 @@ class SettingsRepository(
     suspend fun setShowUnnamedPlaces(show: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[Keys.showUnnamedPlaces] = show
+        }
+    }
+
+    /** One key, for the home screen menu's master switch. */
+    suspend fun setAutoRidesEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[Keys.autoRidesEnabled] = enabled
         }
     }
 }

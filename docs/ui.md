@@ -295,6 +295,7 @@ The first line is what the watcher is armed for:
 | `Paused - will resume on leaving X` | The ride is paused inside auto-start place X; driving off resumes it rather than starting a new ride |
 | `Auto paused - resume to re-arm` | Paused with only auto-save places flagged — there is no departure to watch for, so nothing happens until you resume by hand |
 | `Auto off - no place is flagged` | Nothing is being watched for at all |
+| `Automatic rides off - turn on in the menu` | Auto start/stop rides is unchecked in the home screen menu; nothing automatic happens |
 
 The **provider** is named because it explains the accuracy. A sweep uses
 the cheapest provider available — often cell/wifi positioning, good for
@@ -722,8 +723,8 @@ stops list has only proposed has nothing to delete yet either.
   frozen and no longer averaged from linked rides and stops.
 * **Auto** — `autoStart` starts a ride when the vehicle *leaves* this
   place; `autoSave` ends one when it *arrives*. Both are edited in the
-  place editor, and flagging any place is what turns watching on — there
-  is no separate switch for the feature.
+  place editor, and flagging any place is what turns watching on, while
+  **Auto start/stop rides** is checked in the home screen's overflow menu.
 
 ### Automatic rides
 
@@ -743,6 +744,7 @@ says which of them is happening:
 | `Arrived at X - saving in 4:37` | Paused by an arrival, counting down, with **Resume** and **Save now** buttons; driving off saves at once and starts a new ride |
 | `Paused - will resume when you drive off` | Paused inside an auto-start place; leaving it resumes the ride |
 | `Paused - nothing automatic until you resume` | Paused with only auto-save places flagged; watching is stood down |
+| `Automatic rides off` (or `Running - automatic rides off`, …) | Auto start/stop rides is unchecked; nothing automatic happens until it is checked again |
 
 Only the countdown carries buttons — it is the one moment the app is about
 to do something irreversible on its own, so both answers to it are
@@ -766,21 +768,25 @@ left to keep alive — no place flagged *and* no ride in progress.
 The confirmation dialog says which of those is about to happen rather than
 claiming the first one always does.
 
-There is deliberately no second "quit everything" exit — that is the
-master switch again, entered through a different door, and it fails the
-same way: a state entered the night before, invisible the morning it
-matters. **How to stop watching**, in the order the app intends:
+There is deliberately no second "quit everything" exit: the master switch
+is the way to stop watching, and unlike a second Quit its state stays
+visible afterwards. **How to stop watching**, in the order the app
+intends:
 
-1. **Clear the flags.** Turn off auto-start and auto-save on every place.
-   This is the app's own off switch, and the only one that is visible
-   inside the app afterwards.
-2. **Force stop** FossRideMeter in Android's app settings, to hold it
+1. **Uncheck Auto start/stop rides** in the home screen's overflow menu
+   (`Settings.autoRidesEnabled`). Nothing automatic happens and no GPS
+   runs while no ride is running. The places keep their flags, a running
+   countdown is cancelled, Quit stops the service unless a ride is in
+   progress, and the status line and notification say
+   `Automatic rides off` so it isn't forgotten.
+2. **Clear the flags.** Turn off auto-start and auto-save on every place.
+3. **Force stop** FossRideMeter in Android's app settings, to hold it
    without touching the places. This is durable, not just until the next
    reboot: a force-stopped package is in Android's *stopped* state, so it
    receives no `BOOT_COMPLETED`, `BootReceiver` never runs, and the
    pending sweep alarm is cancelled with the process. Opening the app
    re-arms everything.
-3. **Digital Wellbeing → Pause app** does the same by suspending the
+4. **Digital Wellbeing → Pause app** does the same as force stop by suspending the
    package, if that is easier to find.
 
 **Disabling** the app is generally *not* available: Android only offers

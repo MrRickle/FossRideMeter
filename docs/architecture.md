@@ -573,6 +573,18 @@ until the user resumes by hand. It is deliberately **not** a fourth
 `RideStatus` — whether the app is watching is orthogonal to whether a ride
 exists, and can be true alongside any status.
 
+`Disabled` means the user unchecked **Auto start/stop rides** in the home
+screen's overflow menu (`Settings.autoRidesEnabled`, on by default). It is
+the one master switch, and it overrides everything below it:
+`reconcileWatching` stops the watcher whatever the ride's status,
+`onCrossing` ignores a crossing already in flight, switching off during a
+countdown cancels it (the ride stays paused), `quit()` stops the service
+unless a ride is in progress, and `BootReceiver` doesn't start it for
+flagged places. The places keep their flags, so switching back on picks
+them all up. It is separate from `Off`, which means no place is flagged,
+so the status line can say which switch to look at. See *Automatic Rides
+Have a Master Switch* in `decisions.md`.
+
 `RideTrackingService` points the watcher at the crossing that matters for
 the ride's current status:
 

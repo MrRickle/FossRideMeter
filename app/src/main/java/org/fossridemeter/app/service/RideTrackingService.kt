@@ -350,6 +350,14 @@ class RideTrackingService : Service() {
                     // The button's label says which way it will switch.
                     refreshNotification()
                 }
+                // Switched off mid-countdown: the countdown is an automatic
+                // save, and off means nothing automatic. The ride stays
+                // paused for the user to save or resume by hand.
+                // cancelGrace() reconciles, which stands the watcher down.
+                if (!settings.autoRidesEnabled && graceJob != null) {
+                    EventLog.log("RideTrackingService", "Automatic rides switched off - countdown cancelled")
+                    cancelGrace()
+                }
                 // Cadence and accuracy are read at start(), so a change
                 // to either has to re-decide the watcher rather than
                 // waiting for the ride status to happen to move.
@@ -536,6 +544,18 @@ class RideTrackingService : Service() {
 
         val status = tracker.ride.value.status
 
+        // The master switch. The places keep their flags; nothing is
+        // watched, so no GPS runs while no ride is.
+        if (!currentSettings.autoRidesEnabled) {
+            if (_autoState.value != AutoState.Disabled) {
+                EventLog.log("RideTrackingService", "Auto state -> Disabled (switched off, status=$status)")
+            }
+            placeWatcher.stop()
+            watchingWith = null
+            _autoState.value = AutoState.Disabled
+            return
+        }
+
         val mode = when (status) {
             RideStatus.READY -> PlaceWatcher.Mode.DEPARTURE
             RideStatus.RUNNING -> PlaceWatcher.Mode.ARRIVAL
@@ -622,6 +642,11 @@ class RideTrackingService : Service() {
         }
 
     private fun onCrossing(crossing: PlaceWatcher.Crossing) {
+        // A crossing already in flight when the switch went off.
+        if (!currentSettings.autoRidesEnabled) {
+            EventLog.log("RideTrackingService", "Ignoring $crossing - automatic rides are off")
+            return
+        }
         when (crossing) {
             is PlaceWatcher.Crossing.Departed -> onDeparted(crossing)
             is PlaceWatcher.Crossing.Arrived -> onArrived(crossing.place)
@@ -867,6 +892,9 @@ class RideTrackingService : Service() {
             AutoState.WatchingResume -> "Paused - will resume when you drive off"
             AutoState.Suspended -> "Paused - nothing automatic until you resume"
             AutoState.Off -> statusText(status)
+            AutoState.Disabled ->
+                if (status == RideStatus.READY) "Automatic rides off"
+                else "${statusText(status)} - automatic rides off"
         }
 
     private fun formatCountdown(seconds: Int): String =
@@ -1200,8 +1228,9 @@ class RideTrackingService : Service() {
      * in-progress ride at startup. Quitting is closing the UI; ending a
      * ride is save() or cancel(), and only the user gets to say which.
      *
-     * Un-flagging every place is what fully stops it - there is
-     * deliberately no separate master switch (see decisions.md).
+     * Switching automatic rides off (the home screen's menu), or
+     * un-flagging every place, is what lets it fully stop - see
+     * "Automatic Rides Have a Master Switch" in decisions.md.
      */
     fun quit() {
         Log.d("RideTrackingService", "Quit requested")
@@ -1209,8 +1238,9 @@ class RideTrackingService : Service() {
         cancelGrace()
 
         val rideIsLive = tracker.ride.value.status != RideStatus.READY
+        val watching = currentSettings.autoRidesEnabled && (flaggedForStart || flaggedForSave)
 
-        if (flaggedForStart || flaggedForSave || rideIsLive) {
+        if (watching || rideIsLive) {
             reconcileWatching()
             refreshNotification()
             return

@@ -38,6 +38,15 @@ sealed interface AutoState {
     /** Nothing to watch for - no place carries the relevant flag. */
     data object Off : AutoState
 
+    /**
+     * The user switched automatic rides off. Places keep their flags, but
+     * nothing is watched and nothing happens on its own until it is
+     * switched back on. Distinct from [Off] so the screen can say which:
+     * "no place is flagged" is fixed in the place editor, this one in
+     * the home screen's menu.
+     */
+    data object Disabled : AutoState
+
     /** Ride is READY; watching autoStart places to be left. */
     data object WatchingDeparture : AutoState
 

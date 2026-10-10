@@ -29,9 +29,11 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.fossridemeter.app.data.AppRepository
 import org.fossridemeter.app.data.LiveRideStore
+import org.fossridemeter.app.data.SettingsRepository
 import org.fossridemeter.app.util.EventLog
 
 /**
@@ -49,8 +51,8 @@ import org.fossridemeter.app.util.EventLog
  * short list as BOOT_COMPLETED of broadcasts allowed to start a
  * foreground service from the background.
  *
- * Starts nothing unless something asks for it: a flagged place, or a
- * ride that was being metered when the process went (LiveRideStore holds
+ * Starts nothing unless something asks for it: a flagged place with
+ * automatic rides switched on, or a ride that was being metered when the process went (LiveRideStore holds
  * its id outside the process, and the service restores it on create). A
  * user with neither gets no service and no notification.
  *
@@ -82,7 +84,8 @@ class BootReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val places = AppRepository.getPlaceDao(appContext).getAllOnce()
-                val watching = places.any { it.autoStart || it.autoSave }
+                val switchedOn = SettingsRepository(appContext).settings.first().autoRidesEnabled
+                val watching = switchedOn && places.any { it.autoStart || it.autoSave }
                 val rideLive = LiveRideStore(appContext).liveRideId() != null
                 val wanted = watching || rideLive
 
