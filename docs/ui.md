@@ -731,7 +731,7 @@ says which of them is happening:
 |---|---|
 | `Watching for departure` | Ready; leaving an auto-start place will begin a ride |
 | `Running - watching for arrival` | Metering; arriving at an auto-save place will end it |
-| `Arrived at X - saving in 4:37` | Paused by an arrival, counting down, with **Resume** and **Save now** buttons |
+| `Arrived at X - saving in 4:37` | Paused by an arrival, counting down, with **Resume** and **Save now** buttons; driving off saves at once and starts a new ride |
 | `Paused - will resume when you drive off` | Paused inside an auto-start place; leaving it resumes the ride |
 | `Paused - nothing automatic until you resume` | Paused with only auto-save places flagged; watching is stood down |
 

@@ -43,6 +43,7 @@ import org.fossridemeter.app.data.AppRepository
 import org.fossridemeter.app.data.LiveRideStore
 import org.fossridemeter.app.data.RideRepository
 import org.fossridemeter.app.model.DistanceProviderType
+import org.fossridemeter.app.model.Place
 import org.fossridemeter.app.model.Ride
 import org.fossridemeter.app.model.RideStatus
 import org.fossridemeter.app.model.Settings
@@ -521,11 +522,10 @@ class RideTrackingService : Service() {
      * registering its own alarm receiver while the other was still
      * registered. See onSweepDue for what a receiver left behind does.
      *
-     * Leaves a countdown alone: PendingSave is a live grace window, not
-     * a watching state, and only resume/save/cancel end it. That is also
-     * what keeps auto-resume out of the grace window - driving off during
-     * a countdown is answered by the notification's Resume button, not by
-     * a second automatic decision layered on the first.
+     * Leaves a countdown alone: PendingSave is a live grace window, and
+     * onArrived arms the departure watch it needs itself, seeded with the
+     * place just reached. Only resume/save/cancel, the countdown running
+     * out, or a departure end it - see onArrived.
      */
     @Synchronized
     private fun reconcileWatching() {
@@ -579,11 +579,16 @@ class RideTrackingService : Service() {
 
         // start() resets the watcher's idea of which side of the boundary
         // it's on, so only call it when something it depends on changed.
+        // The state's name is not one of those things: WatchingResume and
+        // WatchingDeparture are the same watch, and a paused ride saved
+        // where it stands hasn't moved the vehicle. Restarting there threw
+        // away the side of the boundary the watcher had already settled,
+        // and re-seeded it from wherever the vehicle had got to by then.
         val watchSettingsChanged =
             watchingWith?.autoWatchSeconds != currentSettings.autoWatchSeconds ||
                 watchingWith?.autoWatchAccuracy != currentSettings.autoWatchAccuracy
 
-        if (_autoState.value != desired || watchSettingsChanged) {
+        if (placeWatcher.activeMode() != mode || watchSettingsChanged) {
             EventLog.log(
                 "RideTrackingService",
                 "Auto state -> $desired (every ${currentSettings.autoWatchSeconds}s, " +
@@ -595,6 +600,9 @@ class RideTrackingService : Service() {
                 accuracy = currentSettings.autoWatchAccuracy,
             )
             watchingWith = currentSettings
+            _autoState.value = desired
+        } else if (_autoState.value != desired) {
+            EventLog.log("RideTrackingService", "Auto state -> $desired (watch carried over)")
             _autoState.value = desired
         }
     }
@@ -616,7 +624,7 @@ class RideTrackingService : Service() {
     private fun onCrossing(crossing: PlaceWatcher.Crossing) {
         when (crossing) {
             is PlaceWatcher.Crossing.Departed -> onDeparted(crossing)
-            is PlaceWatcher.Crossing.Arrived -> onArrived(crossing.place.name)
+            is PlaceWatcher.Crossing.Arrived -> onArrived(crossing.place)
         }
     }
 
@@ -646,29 +654,32 @@ class RideTrackingService : Service() {
      *   the when and the how far are, for the same reason as above: the
      *   ride resumes as of the departure, with the drive from where it
      *   paused to where the crossing was confirmed already on it.
+     *   Except during an arrival's grace window: then the paused ride
+     *   ended at this place and leaving it again is a new ride - the
+     *   countdown saves now instead of later and this departure starts
+     *   the next one. See onArrived.
      * * RUNNING - nothing. Departures are not what ends a ride.
      */
     private fun onDeparted(crossing: PlaceWatcher.Crossing.Departed) {
         val place = crossing.place
-        when (tracker.ride.value.status) {
-            RideStatus.READY -> {
-                val metersAlready = DistanceUtil.haversineMeters(
-                    place.latitude, place.longitude,
-                    crossing.confirmedAt.latitude, crossing.confirmedAt.longitude,
-                )
+
+        // Handed to the countdown rather than acted on here: it may be
+        // mid-save already, and two coroutines saving one ride is the
+        // thing graceJob's own comments go out of their way to prevent.
+        synchronized(this) {
+            if (_autoState.value is AutoState.PendingSave) {
                 EventLog.log(
                     "RideTrackingService",
-                    "Auto-start: departed ${place.name}, " +
-                        "left ${(System.currentTimeMillis() - crossing.leftAtMillis) / 1000}s ago, " +
-                        "${metersAlready.toInt()}m out"
+                    "Departed ${place.name} during the grace window - " +
+                        "saving now and starting a new ride"
                 )
-                tracker.start(
-                    settings = currentSettings,
-                    startPlace = place,
-                    startedAtMillis = crossing.leftAtMillis,
-                    metersAlready = metersAlready,
-                )
+                graceDeparture = crossing
+                return
             }
+        }
+
+        when (tracker.ride.value.status) {
+            RideStatus.READY -> startFromDeparture(crossing)
             RideStatus.PAUSED -> {
                 // Measured from where the ride actually paused, not from
                 // the place: pause() recorded that point and the ride was
@@ -696,6 +707,27 @@ class RideTrackingService : Service() {
         }
     }
 
+    /** The READY half of onDeparted: an automatic start, backdated. */
+    private fun startFromDeparture(crossing: PlaceWatcher.Crossing.Departed) {
+        val place = crossing.place
+        val metersAlready = DistanceUtil.haversineMeters(
+            place.latitude, place.longitude,
+            crossing.confirmedAt.latitude, crossing.confirmedAt.longitude,
+        )
+        EventLog.log(
+            "RideTrackingService",
+            "Auto-start: departed ${place.name}, " +
+                "left ${(System.currentTimeMillis() - crossing.leftAtMillis) / 1000}s ago, " +
+                "${metersAlready.toInt()}m out"
+        )
+        tracker.start(
+            settings = currentSettings,
+            startPlace = place,
+            startedAtMillis = crossing.leftAtMillis,
+            metersAlready = metersAlready,
+        )
+    }
+
     /**
      * Reached a place flagged autoSave. Pauses rather than saving: pause()
      * already writes a complete, saveable ride (end location and end time
@@ -705,40 +737,90 @@ class RideTrackingService : Service() {
      * The save that follows is the only one in the app the user hasn't
      * explicitly confirmed, which is what the grace window is buying -
      * see "Automatic save" in decisions.md.
+     *
+     * The countdown watches for a departure the whole time, seeded as
+     * inside [place], and leaving cuts it short: the ride is saved at once
+     * and the departure starts the next one, backdated like any automatic
+     * start. Without that, leaving within the window meant a save on a
+     * timer from somewhere down the road, and a departure watch armed
+     * there that never knew the vehicle had been inside - so the trip
+     * after the one that ended here wasn't metered at all. See "Leaving
+     * During the Grace Window Starts the Next Ride" in decisions.md.
      */
-    private fun onArrived(placeName: String) {
+    private fun onArrived(place: Place) {
         if (tracker.ride.value.status != RideStatus.RUNNING) return
 
-        EventLog.log("RideTrackingService", "Auto-save: arrived $placeName, pausing")
-
-        tracker.pause()
-        placeWatcher.stop()
+        EventLog.log("RideTrackingService", "Auto-save: arrived ${place.name}, pausing")
 
         val graceSeconds = (currentSettings.autoSaveGraceMinutes * 60).coerceAtLeast(1)
+
+        // The countdown before the pause, so the reconcile the pause sets
+        // off stands aside instead of arming a watch of its own. The
+        // other order armed an unseeded watcher and had this stop it
+        // again a moment later - two collectors, two decisions, no watch.
+        synchronized(this) {
+            graceDeparture = null
+            _autoState.value = AutoState.PendingSave(place.name, graceSeconds)
+        }
+
+        tracker.pause()
+
+        if (flaggedForStart) {
+            placeWatcher.start(
+                mode = PlaceWatcher.Mode.DEPARTURE,
+                watchSeconds = currentSettings.autoWatchSeconds,
+                accuracy = currentSettings.autoWatchAccuracy,
+                inside = place,
+            )
+            watchingWith = currentSettings
+        } else {
+            placeWatcher.stop()
+        }
 
         graceJob?.cancel()
         graceJob = serviceScope.launch {
             var remaining = graceSeconds
-            while (isActive && remaining > 0) {
-                _autoState.value = AutoState.PendingSave(placeName, remaining)
+            while (isActive && remaining > 0 && graceDeparture == null) {
+                _autoState.value = AutoState.PendingSave(place.name, remaining)
                 delay(1000)
                 remaining--
             }
             if (isActive) {
-                EventLog.log("RideTrackingService", "Grace window elapsed, saving")
+                if (graceDeparture == null) {
+                    EventLog.log("RideTrackingService", "Grace window elapsed, saving")
+                }
 
                 // Drop the handle to this job *before* saving, and call
                 // the meter directly rather than through save(): save()
                 // calls cancelGrace(), which would cancel the very
                 // coroutine running it and abandon the write half-done.
                 graceJob = null
-                _autoState.value = AutoState.Off
 
+                // Still PendingSave while the save runs, so the reconcile
+                // the save sets off leaves the departure watch alone.
                 tracker.save()
+
+                // Read only now, and in the same breath as leaving
+                // PendingSave: a departure confirmed while the save was
+                // running was handed over here, and one confirmed after
+                // this sees a READY ride and starts it itself.
+                val departure = synchronized(this@RideTrackingService) {
+                    graceDeparture.also {
+                        graceDeparture = null
+                        _autoState.value = AutoState.Off
+                    }
+                }
+                if (departure != null) startFromDeparture(departure)
+
                 reconcileWatching()
             }
         }
     }
+
+    // A departure confirmed during an arrival's grace window, waiting for
+    // the countdown to save the ride before it starts the next one.
+    @Volatile
+    private var graceDeparture: PlaceWatcher.Crossing.Departed? = null
 
     /**
      * Ends a countdown without saving. Called by every path that decides
@@ -747,6 +829,7 @@ class RideTrackingService : Service() {
     private fun cancelGrace() {
         graceJob?.cancel()
         graceJob = null
+        graceDeparture = null
         if (_autoState.value is AutoState.PendingSave) {
             _autoState.value = AutoState.Off
             // The ride is still PAUSED at this point and places may still

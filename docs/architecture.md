@@ -579,7 +579,7 @@ the ride's current status:
 | Ride status | Watching for | On crossing |
 |---|---|---|
 | `READY` | departure from an `autoStart` place | `start()`, with the departed place as the ride's start |
-| `RUNNING` | arrival at an `autoSave` place | `pause()`, then commit after a grace window |
+| `RUNNING` | arrival at an `autoSave` place | `pause()`, then commit after a grace window — or at once, starting a new ride, on leaving within it |
 | `PAUSED` | departure from an `autoStart` place | `resume()`, backdated the same way — the ride carries on rather than a new one beginning |
 
 An automatic start passes the departed place into `RideMeter.start()`
@@ -622,11 +622,18 @@ Only `RideStatus` distinguishes them; the crossing is identical, which is
 why `onDeparted` branches on status rather than the watcher reporting two
 kinds of departure.
 
-The one pause this does *not* apply to is a live grace window: `PendingSave`
-short-circuits `reconcileWatching`, so an arrival counting down is not
-also watching for a departure. Driving off during a countdown is answered
-by the notification's **Resume** button, not by a second automatic
-decision layered on top of the first.
+The one pause this does *not* apply to is a live grace window. There,
+leaving does not resume: the paused ride ended at that place, so the
+countdown saves it at once and the departure starts a new ride, backdated
+like any automatic start. `PendingSave` still short-circuits
+`reconcileWatching`. `onArrived` arms the countdown's departure watch
+itself, already inside the place just reached, and sets `PendingSave`
+*before* pausing so the reconcile the pause triggers stands aside. A
+departure confirmed in the window is passed to the countdown coroutine
+(`graceDeparture`), which may already be saving. Afterwards
+`reconcileWatching` carries the same watch over to `READY` without
+restarting it, because it restarts only on a change of mode. See
+*Leaving During the Grace Window Starts the Next Ride* in `decisions.md`.
 
 ### Battery
 

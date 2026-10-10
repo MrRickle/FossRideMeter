@@ -67,7 +67,9 @@ sealed interface AutoState {
 
     /**
      * An arrival paused the ride and the grace window is counting down.
-     * Resuming takes it back; running out commits the save.
+     * Resuming takes it back; running out commits the save. A departure
+     * watch runs throughout, and leaving commits the save at once and
+     * starts the next ride.
      */
     data class PendingSave(
         val placeName: String,

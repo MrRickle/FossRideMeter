@@ -392,13 +392,31 @@ class PlaceWatcher(
             null -> emptyList()
         }
 
+    /** The mode being watched in, or null when stopped. */
+    @Synchronized
+    fun activeMode(): Mode? = mode
+
     /**
      * Starts watching in [mode]. Restarts cleanly if already watching:
      * containment is forgotten, so the next observation re-seeds rather
      * than reporting a crossing against a stale side of the boundary.
+     *
+     * [inside] arms it already knowing the answer, for the one caller
+     * that does know: an arrival that was just confirmed. Seeding from
+     * the first fix instead is only right when that fix is taken where
+     * the vehicle sits - and the departure watch after an automatic save
+     * was armed by the save, which ran on a timer while the vehicle was
+     * already 2.4 km down the road. Its first fix seeded "outside", so
+     * the departure it existed to catch had, as far as it knew, never
+     * happened, and a fourteen-hour trip went unmetered (2026-10-09).
      */
     @Synchronized
-    fun start(mode: Mode, watchSeconds: Int, accuracy: WatchAccuracy) {
+    fun start(
+        mode: Mode,
+        watchSeconds: Int,
+        accuracy: WatchAccuracy,
+        inside: Place? = null,
+    ) {
 
         log("Watching for $mode using $accuracy")
 
@@ -409,9 +427,20 @@ class PlaceWatcher(
         armed = false
         occupancyConfirmed = false
 
+        // Only a place this mode watches can be a side of its boundary;
+        // seeding with any other would report leaving somewhere nobody
+        // asked to hear about.
+        if (inside != null && watchedPlaces().any { it.id == inside.id }) {
+            occupied = inside
+            armed = true
+            occupancyConfirmed = true
+            log("Armed $mode inside ${inside.name} - arrival just confirmed there")
+        }
+
         // Forget which fix was last seen, so the first one after arming
-        // is always taken. It only seeds which side of the boundary we
-        // are on and can confirm nothing by itself, and a receiver
+        // is always taken. It seeds which side of the boundary we are on
+        // (unless [inside] already did) and can confirm nothing by
+        // itself, and a receiver
         // sitting on one position must not leave a freshly armed watcher
         // with no idea where it is.
         lastFixNanos = NO_FIX_TIME

@@ -268,17 +268,57 @@ the paused ride would be stranded, and one job would be split in two. The
 crossing is identical; only what it means differs, so the meaning lives in
 `onDeparted` rather than in a second kind of departure from `PlaceWatcher`.
 
-A live grace window is excluded. `PendingSave` short-circuits
-`reconcileWatching`, so an arrival that is counting down is not also
-watching for a departure — driving off during a countdown is answered by
-the notification's **Resume** button. Automatic decisions do not stack:
-the countdown is already the one thing the app does without asking, and
-layering a second automatic reversal on top of it would leave no state the
-user could predict from the notification in front of them.
+A live grace window is excluded *(no longer — see the next decision)*.
+`PendingSave` short-circuited `reconcileWatching`, so an arrival that was
+counting down was not also watching for a departure — driving off during a
+countdown was to be answered by the notification's **Resume** button.
+Automatic decisions do not stack: the countdown is already the one thing
+the app does without asking, and layering a second automatic reversal on
+top of it would leave no state the user could predict from the
+notification in front of them.
 
 The cost is a departure poll while paused, which is the same poll `READY`
 already pays. `Suspended` remains for the case where nothing can happen —
 paused with only an `autoSave` place flagged.
+
+## Decision: Leaving During the Grace Window Starts the Next Ride
+
+An arrival's countdown watches for a departure, and leaving cuts it short:
+the paused ride is saved at once, as the countdown said it would be, and
+the departure starts a **new** ride, backdated like any automatic start.
+It does not resume the paused one.
+
+Excluding the grace window, as the decision above did, assumed the user
+would press **Resume** on the way out. On 2026-10-09 they got home, went
+in for something, and drove off inside a four-minute window without
+touching the phone. Nothing watched while the window ran, so the
+countdown saved the short ride on its timer with the vehicle already
+2.4 km down the road. The departure watch armed by that save then took
+its first fix there, seeded "outside", and never learned the vehicle had
+been home: a fourteen-hour, 530-mile trip went unmetered.
+
+Why a new ride rather than resuming: arriving at an `autoSave` place
+is a real ending, and the countdown on the screen has already told the
+user so. Leaving again from the same place is a real start. Resuming
+would fold the visit home into the next trip, and the user would have to
+split the rides apart by hand. It also keeps the old rule that automatic
+decisions don't *reverse* each other. The countdown's own decision, to
+save, still happens; leaving only makes it happen sooner.
+
+Two supporting changes carry the fix:
+
+* The countdown's watch is armed **already inside** the place just
+  reached (`PlaceWatcher.start(inside = …)`), not seeded from its first
+  fix. The arrival was just confirmed there; the next fix might not be.
+* `reconcileWatching` restarts the watcher only when its *mode* changes.
+  `WatchingResume` → `WatchingDeparture` (a paused ride saved where it
+  stands) is the same watch, and restarting it there was what discarded
+  the side of the boundary it had already settled.
+
+The departure is handed to the countdown's coroutine to act on rather
+than being saved from `onDeparted`, because that coroutine may already be
+mid-save, and two saves of one ride are what `graceJob`'s handling exists
+to prevent.
 
 ## Decision: Watching Stands Down While Paused *(superseded)*
 
