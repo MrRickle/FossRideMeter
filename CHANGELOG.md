@@ -4,6 +4,43 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
+## 0.1.7 — 2026-10-10
+
+### Fixed
+
+- **Leaving again during the auto-save countdown no longer loses the
+  next trip.** Getting home paused the ride and started the countdown,
+  but nothing watched for you leaving while it ran. Drive off inside the
+  window and the countdown saved the short ride on its timer once you
+  were already down the road, and the next trip was never metered — one
+  real fourteen-hour trip went unrecorded that way. Now leaving during
+  the countdown saves the ride at once and starts a new one, dated from
+  when you actually left.
+
+- **Watching comes back by itself after the app is updated.** Installing
+  an update stopped it until you next opened the app. A ride that was
+  in progress during an update or a reboot now comes back on its own
+  too.
+
+### Added
+
+- **Auto start/stop rides**, a checkbox in the home screen's ⋮ menu,
+  turns all automatic rides off at once to save battery, without
+  clearing auto-start and auto-save on every place. While it is off
+  nothing happens on its own and no GPS runs unless you are metering a
+  ride, and the home screen and notification both say so. Check it
+  again and every flagged place works as before. It is on by default.
+
+- **Unnamed places are hidden from the Places list** unless you tick
+  **Show unnamed places** in its ⋮ menu. They are the placeholders a
+  ride makes where it stops somewhere you haven't named; they still work
+  as before, and Export still saves them.
+
+- **Hide amount / Show amount on the ride notification** switches the
+  floating amount on and off mid-ride, when Settings is locked. Without
+  permission to draw over other apps the button reads **Allow amount**
+  and opens that permission screen.
+
 ## 0.1.6 — 2026-09-13
 
 ### Changed
