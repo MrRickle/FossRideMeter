@@ -48,6 +48,13 @@ import org.fossridemeter.app.model.RideStatus
  * the marker is that it is already on disk when the process is killed
  * without warning, which is precisely when apply() has no obligation to
  * have finished.
+ *
+ * It also holds the stop under way, if one has lasted long enough to be
+ * worth keeping (see [SavedDwell]). A stop is only written to the
+ * database when the vehicle drives off, so until then it exists only in
+ * the meter's memory - and a long wait is exactly when the system is
+ * most likely to reclaim the process. On 2026-10-10 two low-memory kills
+ * during a stop threw away the hour and a half already spent there.
  */
 class LiveRideStore(context: Context) {
 
@@ -58,6 +65,9 @@ class LiveRideStore(context: Context) {
         prefs.edit()
             .putString(KEY_RIDE_ID, rideId)
             .putString(KEY_STATUS, status.name)
+            // A new ride starts with no stop under way, whatever an
+            // earlier one left behind.
+            .removeDwell()
             .commit()
     }
 
@@ -75,8 +85,67 @@ class LiveRideStore(context: Context) {
     }
 
     fun clear() {
-        prefs.edit().remove(KEY_RIDE_ID).remove(KEY_STATUS).commit()
+        prefs.edit().remove(KEY_RIDE_ID).remove(KEY_STATUS).removeDwell().commit()
     }
+
+    /**
+     * A stop under way: where the vehicle has been sitting and since
+     * when, the moment the ride was paused if it is, and the stop row
+     * already written for it if the user pressed ADD STOP. Exactly the
+     * dwell fields RideMeter would otherwise lose with the process.
+     */
+    data class SavedDwell(
+        val latitude: Double,
+        val longitude: Double,
+        val startedAtMillis: Long,
+        val pausedAtMillis: Long,
+        val stopId: String?,
+    )
+
+    /**
+     * Records the stop under way, or that there is none ([dwell] null).
+     *
+     * commit(), like the rest of this class, so it is on disk when the
+     * kill comes. That makes it a synchronous write, which is why
+     * RideMeter only calls this when the value changes, and only keeps a
+     * stop that has lasted a while: while driving there is nothing to
+     * keep and nothing is written.
+     */
+    fun saveDwell(dwell: SavedDwell?) {
+        if (liveRideId() == null) return
+        val editor = prefs.edit()
+        if (dwell == null) {
+            editor.removeDwell()
+        } else {
+            editor
+                // Doubles as their bits: SharedPreferences has no double,
+                // and a float would move the anchor by metres.
+                .putLong(KEY_DWELL_LAT, dwell.latitude.toRawBits())
+                .putLong(KEY_DWELL_LON, dwell.longitude.toRawBits())
+                .putLong(KEY_DWELL_STARTED, dwell.startedAtMillis)
+                .putLong(KEY_DWELL_PAUSED, dwell.pausedAtMillis)
+                .putString(KEY_DWELL_STOP_ID, dwell.stopId)
+        }
+        editor.commit()
+    }
+
+    fun savedDwell(): SavedDwell? {
+        if (!prefs.contains(KEY_DWELL_STARTED)) return null
+        return SavedDwell(
+            latitude = Double.fromBits(prefs.getLong(KEY_DWELL_LAT, 0L)),
+            longitude = Double.fromBits(prefs.getLong(KEY_DWELL_LON, 0L)),
+            startedAtMillis = prefs.getLong(KEY_DWELL_STARTED, 0L),
+            pausedAtMillis = prefs.getLong(KEY_DWELL_PAUSED, 0L),
+            stopId = prefs.getString(KEY_DWELL_STOP_ID, null),
+        )
+    }
+
+    private fun android.content.SharedPreferences.Editor.removeDwell() =
+        remove(KEY_DWELL_LAT)
+            .remove(KEY_DWELL_LON)
+            .remove(KEY_DWELL_STARTED)
+            .remove(KEY_DWELL_PAUSED)
+            .remove(KEY_DWELL_STOP_ID)
 
     fun liveRideId(): String? = prefs.getString(KEY_RIDE_ID, null)
 
@@ -95,5 +164,10 @@ class LiveRideStore(context: Context) {
         const val PREFS = "live_ride"
         const val KEY_RIDE_ID = "ride_id"
         const val KEY_STATUS = "status"
+        const val KEY_DWELL_LAT = "dwell_lat"
+        const val KEY_DWELL_LON = "dwell_lon"
+        const val KEY_DWELL_STARTED = "dwell_started"
+        const val KEY_DWELL_PAUSED = "dwell_paused"
+        const val KEY_DWELL_STOP_ID = "dwell_stop_id"
     }
 }

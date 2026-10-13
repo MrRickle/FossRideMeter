@@ -4,6 +4,18 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
+## Unreleased
+
+### Fixed
+
+- **A stop survives the app being killed during it.** Android sometimes
+  closes the app to free memory, and a long wait is when that's most
+  likely. The stop you were in used to start over from when the app came
+  back, so the time already parked was billed as driving and the stop
+  read short. One real stop lost an hour and a half that way. Now it
+  picks up where it was. If you drove off while the app was closed, the
+  stop ends when the app was closed, not when it noticed.
+
 ## 0.1.7 — 2026-10-10
 
 ### Fixed

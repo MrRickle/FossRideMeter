@@ -1403,3 +1403,44 @@ ongoing ride notification is `IMPORTANCE_LOW` and silent by design,
 which is exactly why being killed mid-ride otherwise announces nothing
 at all - the notification dies with the process and the phone in a
 pocket shows a gap nobody sees.
+
+## Decision: The Stop Under Way Survives the Process
+
+A stop is written to the database only when the vehicle drives off, so
+until then it lives in the meter's memory. `restore()` used to throw it
+away and start stop detection again from the restart's first fix. A
+long wait is exactly when the system reclaims a process: on 2026-10-10
+two low-memory kills during one stop left a saved stop starting at the
+restart, so the parked time before it billed at the driving rate and
+the stop read an hour and a half short.
+
+So the dwell is kept beside the live ride's id in `LiveRideStore`: its
+anchor, when it began, the pause time if paused, and the ADD STOP row if
+the user pressed it (`SavedDwell`). `restoreDwell()` puts it back, and
+its clock comes back the way the ride does. Paused, it stays frozen
+where it froze. Running and resumed, it runs on. Running but gone past
+`MAX_GAP_TO_RESUME_MILLIS`, it freezes at the last moment the ride was
+known to be metering.
+
+The first fix after the restart settles what the gap was:
+
+* **Within 30 m of the anchor:** the vehicle sat through it, the stop
+  carries on, and the gap is stopped time, as it was.
+* **Beyond it:** the vehicle left while nothing watched. The stop ends at
+  the last moment the dead process is known to have been metering
+  (`restoredDwellLiveUntil`), not when the app noticed, so an unknown
+  stretch that may have been driving isn't billed as stopped.
+
+`LiveRideStore` writes with `commit()`, a synchronous disk write, so
+the dwell is written only when it changes and only once it has lasted
+`DWELL_SAVE_AFTER_MILLIS` (30 s). While driving, the anchor moves every
+few seconds and nothing is written; while parked, it is one write, plus
+one each for pause, resume and ADD STOP. A dwell killed in its first 30
+seconds is still lost, and that is accepted: well under the 3-minute
+stop threshold, it is mostly traffic.
+
+The open *visit* (`openVisit`, the stop a later dwell inside the same
+place extends) is not kept. A kill mid-visit can split one visit into
+two stops at the same place. The rides table and stops list already
+show consecutive stops at one place as one (`StopGroup`), so it shows
+the same either way.

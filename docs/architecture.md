@@ -228,7 +228,13 @@ ride to reconcile:
    Resume and Save on the notification. What the ride did before the
    death is held in `priorMeters`/`priorSeconds` and added to the
    providers' totals, since the providers count from zero and no
-   instance survived to continue.
+   instance survived to continue. The stop under way survives as well:
+   `LiveRideStore` keeps the dwell once it has lasted 30 s, and
+   `restoreDwell()` puts it back. The first fix after the restart
+   decides whether the vehicle sat through the gap (the stop carries on)
+   or left during it (the stop ends at the last moment the dead process
+   was metering). See *The Stop Under Way Survives the Process* in
+   `decisions.md`.
 7. **`save()`** — the single commit point, confirmed by the user first.
    Resolves the real end place, retracts a trailing stop that matches it
    (arriving is not a stop along the way), completes an automatic name

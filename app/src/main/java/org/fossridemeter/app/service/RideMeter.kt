@@ -89,6 +89,13 @@ class RideMeter(
         // that direction costs one tap.
         private const val MAX_GAP_TO_RESUME_MILLIS = 60 * 60_000L
         private val PERSIST_INTERVAL = 5.seconds
+
+        // How long a dwell has to have lasted before it is kept outside
+        // the process (LiveRideStore.saveDwell). Below this there is
+        // little to lose, and while driving the anchor moves every few
+        // seconds - keeping each one would be a synchronous disk write
+        // on every persist tick for the whole drive.
+        private const val DWELL_SAVE_AFTER_MILLIS = 30_000L
     }
 
     // Whether the ride's name is still the one this class made up, and
@@ -175,6 +182,17 @@ class RideMeter(
     // stopped-time total and the stop-detection threshold measuring ride
     // time rather than wall time.
     private var dwellPausedAt: Long = 0L
+
+    // The dwell as last written to LiveRideStore, so it is only written
+    // again when it changes. See saveDwellIfChanged.
+    private var savedDwell: LiveRideStore.SavedDwell? = null
+
+    // Non-zero while the dwell was brought back by restore() and no fix
+    // has yet said whether the vehicle is still there: the last moment
+    // the dead process is known to have been metering. If the first fix
+    // is beyond the anchor, the vehicle left while nothing was watching,
+    // and the stop ends no later than this - not when the app came back.
+    private var restoredDwellLiveUntil: Long = 0L
 
     // Mirrors the Stop rows already written for this ride, in sequence
     // order. It is a cache of what's in the database, not a pending
@@ -289,6 +307,8 @@ class RideMeter(
         dwellAnchorTime = 0L
         dwellStop = null
         dwellPausedAt = 0L
+        savedDwell = null
+        restoredDwellLiveUntil = 0L
         recordedStops.clear()
         openVisit = null
         openVisitPlace = null
@@ -474,13 +494,7 @@ class RideMeter(
         // Anything else is the user's and stays theirs.
         nameIsAutomatic = record.name.trimEnd().endsWith("->")
 
-        // The dwell that was under way is not recoverable - the anchor
-        // lived in the dead process - so stop detection starts afresh
-        // from the next fix.
-        dwellAnchor = null
-        dwellAnchorTime = 0L
-        dwellStop = null
-        dwellPausedAt = 0L
+        restoreDwell(lastKnownLive = lastKnownLive, resumable = resumable)
 
         // A resumed ride needs a provider to resume into; nothing else
         // creates one, since start() is what normally does.
@@ -504,6 +518,103 @@ class RideMeter(
             gapMillis = gapMillis,
             wasRunning = wasRunning,
         )
+    }
+
+    /**
+     * Brings back the stop that was under way when the process died, if
+     * one had lasted long enough to be kept (see saveDwellIfChanged).
+     *
+     * It used to be thrown away - the anchor lived in the dead process -
+     * so stop detection started again from the first fix after the
+     * restart. A user parked for an hour and a half came back from two
+     * low-memory kills (2026-10-10) with a stop that began at the
+     * restart: everything before it billed as driving, and the stop's
+     * length short by just as much.
+     *
+     * The clock is put back the way the ride itself comes back:
+     *
+     * * paused when it died - frozen where it froze;
+     * * running and resumed - running on, so the gap counts as stopped,
+     *   which it is if the vehicle is still there. The first fix decides
+     *   that (restoredDwellLiveUntil, in handleStopDetection);
+     * * running, but gone too long and brought back paused - frozen at
+     *   the last moment it was known to be metering, since the gap is
+     *   not ride time.
+     */
+    private fun restoreDwell(lastKnownLive: Long, resumable: Boolean) {
+
+        val saved = liveRideStore.savedDwell()
+
+        if (saved == null) {
+            dwellAnchor = null
+            dwellAnchorTime = 0L
+            dwellStop = null
+            dwellPausedAt = 0L
+            savedDwell = null
+            restoredDwellLiveUntil = 0L
+            return
+        }
+
+        dwellAnchor = RideLocation(saved.latitude, saved.longitude)
+        dwellAnchorTime = saved.startedAtMillis
+        // The row ADD STOP wrote, if it did - so the dwell's end closes
+        // that row rather than writing a second one for the same visit.
+        dwellStop = saved.stopId?.let { id -> recordedStops.firstOrNull { it.id == id } }
+        dwellPausedAt = when {
+            saved.pausedAtMillis != 0L -> saved.pausedAtMillis
+            resumable -> 0L
+            else -> lastKnownLive
+        }
+        restoredDwellLiveUntil =
+            if (resumable && saved.pausedAtMillis == 0L) lastKnownLive else 0L
+        savedDwell = saved
+
+        EventLog.log(
+            "RideMeter",
+            "Restored the stop under way: anchored ${(lastKnownLive - saved.startedAtMillis) / 1000}s " +
+                "before the process died at ${saved.latitude},${saved.longitude}" +
+                (if (dwellStop != null) ", already recorded by ADD STOP" else "") +
+                (if (dwellPausedAt != 0L) ", clock frozen (paused)" else ", waiting on a fix to confirm")
+        )
+
+        _ride.value = _ride.value.copy(stoppedSeconds = stoppedSecondsNow())
+    }
+
+    /**
+     * Keeps the dwell under way in LiveRideStore, so restoreDwell can put
+     * it back if the process dies. Called with every write of the ride's
+     * row - the persist tick, pause, resume, a recorded stop - and writes
+     * only when what would be kept has changed: nothing while driving,
+     * once when a stop has lasted DWELL_SAVE_AFTER_MILLIS, and again on
+     * pause, resume or ADD STOP.
+     */
+    private fun saveDwellIfChanged() {
+
+        if (liveRideStore.liveRideId() != _ride.value.id) return
+
+        val anchor = dwellAnchor
+        val measuredTo = if (dwellPausedAt != 0L) dwellPausedAt else System.currentTimeMillis()
+
+        val wanted =
+            if (
+                anchor != null &&
+                (dwellStop != null || measuredTo - dwellAnchorTime >= DWELL_SAVE_AFTER_MILLIS)
+            ) {
+                LiveRideStore.SavedDwell(
+                    latitude = anchor.latitude,
+                    longitude = anchor.longitude,
+                    startedAtMillis = dwellAnchorTime,
+                    pausedAtMillis = dwellPausedAt,
+                    stopId = dwellStop?.id,
+                )
+            } else {
+                null
+            }
+
+        if (wanted == savedDwell) return
+
+        liveRideStore.saveDwell(wanted)
+        savedDwell = wanted
     }
 
     /**
@@ -796,6 +907,8 @@ class RideMeter(
         dwellAnchorTime = 0L
         dwellStop = null
         dwellPausedAt = 0L
+        savedDwell = null
+        restoredDwellLiveUntil = 0L
         recordedStops.clear()
         openVisit = null
         openVisitPlace = null
@@ -842,6 +955,8 @@ class RideMeter(
         dwellAnchorTime = 0L
         dwellStop = null
         dwellPausedAt = 0L
+        savedDwell = null
+        restoredDwellLiveUntil = 0L
         recordedStops.clear()
         openVisit = null
         openVisitPlace = null
@@ -991,6 +1106,8 @@ class RideMeter(
                 amount = amount,
             )
         )
+
+        saveDwellIfChanged()
     }
 
     private fun stopTracking() {
@@ -1162,6 +1279,25 @@ class RideMeter(
             location.latitude, location.longitude
         )
 
+        // The first fix after a restore that brought a dwell back says
+        // whether the vehicle sat through the gap. Still here: the dwell
+        // carries on, gap and all. Gone: it left while the process was
+        // dead, at some moment nothing saw, so the stop ends at the last
+        // moment anything was watching rather than claiming the gap.
+        val restoredLiveUntil = restoredDwellLiveUntil
+        restoredDwellLiveUntil = 0L
+        if (restoredLiveUntil != 0L) {
+            EventLog.log(
+                "RideMeter",
+                if (distance <= STOP_DISTANCE_THRESHOLD_METERS) {
+                    "First fix after restart is ${distance.toInt()}m from the stop - still there, the stop carries on"
+                } else {
+                    "First fix after restart is ${distance.toInt()}m from the stop - left while the app was " +
+                        "down, ending the stop at ${(now - restoredLiveUntil) / 1000}s ago"
+                }
+            )
+        }
+
         if (distance <= STOP_DISTANCE_THRESHOLD_METERS) {
             // Still within range of the anchor - dwell continues, anchor
             // itself doesn't move.
@@ -1170,7 +1306,11 @@ class RideMeter(
 
         // Moved beyond the anchor's radius - movement has resumed. Did we
         // dwell there long enough to count as a stop?
-        val dwellMillis = now - dwellAnchorTime
+        //
+        // Measured to [endedAt], which is now except straight after a
+        // restore that found the vehicle gone - see above.
+        val endedAt = if (restoredLiveUntil != 0L) restoredLiveUntil else now
+        val dwellMillis = endedAt - dwellAnchorTime
         val thresholdMillis = activeSettings.stopDetectionMinutes * 60_000L
 
         val recorded = dwellStop
@@ -1183,7 +1323,7 @@ class RideMeter(
             // drive off. So this closes that row instead of writing a
             // second one, and the departure we just noticed is a truer
             // end time than the moment the button was pressed.
-            extendStop(recorded, now)
+            extendStop(recorded, endedAt)
             dwellStop = null
 
         } else if (dwellMillis >= thresholdMillis) {
@@ -1208,7 +1348,7 @@ class RideMeter(
                     // inside - which is what the stops list has always
                     // displayed as the length of a visit, and what the
                     // billed stopped time now agrees with.
-                    extendStop(open, now)
+                    extendStop(open, endedAt)
 
                     _ride.value = _ride.value.copy(
                         stoppedSeconds = stoppedSecondsNow(),
@@ -1219,7 +1359,7 @@ class RideMeter(
                         location = anchor,
                         place = place,
                         startTime = dwellAnchorTime,
-                        endTime = now,
+                        endTime = endedAt,
                     )
                 }
             }
@@ -1284,6 +1424,12 @@ class RideMeter(
             startTime = dwellAnchorTime,
             endTime = now,
         )
+
+        // recordStop() kept the dwell before dwellStop pointed at the new
+        // row. Kept again now, or a restart would bring the dwell back
+        // without it and write the same visit a second time - and while
+        // PAUSED there is no persist tick to catch it up.
+        saveDwellIfChanged()
 
         return true
     }
