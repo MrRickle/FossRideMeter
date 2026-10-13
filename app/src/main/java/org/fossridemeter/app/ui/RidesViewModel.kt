@@ -59,6 +59,9 @@ class RidesViewModel(
     private val rideDao =
         AppRepository.getRideDao(application)
 
+    private val boundaryEnforcer =
+        AppRepository.getPlaceBoundaryEnforcer(application)
+
     val selection = SelectionState()
 
     private val _rides =
@@ -202,6 +205,10 @@ class RidesViewModel(
      * rates, timing, and linked stops). Re-importing a backup that
      * includes a ride/stop id already present overwrites that row rather
      * than duplicating it.
+     *
+     * The rides' place ids are the exporting phone's. Any that aren't
+     * here are re-linked from the recorded points as part of the import
+     * - see PlaceBoundaryEnforcer.reattachImported.
      */
     suspend fun importJson(text: String): Int {
         val entries = parseRidesJson(text)
@@ -218,6 +225,7 @@ class RidesViewModel(
                     stopDao.upsert(stop)
                 }
             }
+            boundaryEnforcer.reattachImported(entries.map { it.ride.id })
         }.join()
 
         return entries.size

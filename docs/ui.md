@@ -60,9 +60,9 @@ happen leaves the restore waiting rather than half-applied. It is
 disabled while a ride is running or paused: it replaces the database that
 ride is being written into.
 
-**Repair place links** says what it re-links and warns not to run it with
-an unfinished import — a ride imported before its places looks exactly
-like a broken link, and would be re-linked to the wrong place.
+**Repair place links** says what it re-links and asks first. It used to
+warn against running it mid-import; a rides import now re-links its own
+rides as it lands, so there is no half-finished import for it to break.
 
 Import and Export live in the TopAppBar overflow menu on the Rides and
 Places screens. Import always goes through the Storage Access Framework;
@@ -75,6 +75,15 @@ because the file belongs to the app — from API 29 an app may update and
 delete its own entries in the Downloads collection, and only its own — so
 a file the user created themselves is invisible to it and stays
 untouched.
+
+**Importing places** brings in named places only and never duplicates
+one: a place in the file within 10 m of a named place here is that place
+(`planPlacesImport`). Same radius, it's counted as already here. A
+different radius opens **Different radius** (`PlaceRadiusConflictDialog`),
+one row per place showing both radii, nothing ticked; **Use file's
+radius** changes only the ticked ones, **Keep all** or dismissing changes
+none. Every place written, imported or re-radiused, then goes through
+`enforceBoundary()` so it claims this phone's stops inside it.
 
 **Export to...** is the system create-a-document picker, for putting a
 copy on an SD card or in a cloud folder. It only appears where Export
@@ -701,7 +710,9 @@ ticked in the Places overflow menu (`Settings.showUnnamedPlaces`, saved,
 off by default). Places get named from a ride's stops or added with +, so
 the geohash placeholders are only clutter in this list. Hiding them is
 display-only: they still match, link and recompute exactly as before, and
-the overflow-menu Export still writes every place, because it is a backup.
+and Export writes named places only, hidden or not, because the file is
+for copying places to another phone and placeholders belong to this one's
+rides.
 **All** in selection mode selects only the rows on screen (`shownPlaces`),
 so selecting all and deleting can't take hidden rows with it.
 

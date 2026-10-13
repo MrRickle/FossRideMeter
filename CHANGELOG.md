@@ -6,6 +6,19 @@ the shape of things may still change between minor versions.
 
 ## Unreleased
 
+### Changed
+
+- **Copying places to another phone.** Export now writes only the places
+  you've named. Import brings in only named places, and skips any that
+  are already on the phone. If one is already there with a different
+  radius, you're asked which radius to keep, place by place. Imported
+  places now pick up the stops already recorded inside them.
+- **Imported rides link to this phone's places.** A ride copied from
+  another phone used to show `-` for its places until you ran **Repair
+  place links**. Now each one links to the place on this phone that
+  covers it as soon as it's imported. Rides and places can be imported
+  in either order.
+
 ### Fixed
 
 - **A stop survives the app being killed during it.** Android sometimes

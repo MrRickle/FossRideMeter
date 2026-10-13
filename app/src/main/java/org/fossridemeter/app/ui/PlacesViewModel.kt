@@ -28,11 +28,15 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.fossridemeter.app.data.AppRepository
 import org.fossridemeter.app.data.PlaceBoundaryEnforcer
+import org.fossridemeter.app.data.PlacesImportPlan
+import org.fossridemeter.app.data.RadiusConflict
 import org.fossridemeter.app.data.exportPlacesJson
 import org.fossridemeter.app.data.parsePlacesAuto
+import org.fossridemeter.app.data.planPlacesImport
 import org.fossridemeter.app.model.Place
 
 class PlacesViewModel(
@@ -153,17 +157,32 @@ class PlacesViewModel(
         boundaryEnforcer.reattachDeleted(ids)
     }
 
-    /** Native backup format - lossless round trip of everything currently
-     * shown on screen. */
+    /**
+     * Native backup format - lossless round trip of every named place.
+     *
+     * Unnamed placeholders stay behind. They exist to hold this phone's
+     * ride points, and the file is for copying places to another phone,
+     * where they would only be clutter.
+     */
     fun exportJson(): String {
-        return exportPlacesJson(places.value)
+        return exportPlacesJson(places.value.filter { it.isNamed })
     }
 
-    /** The same format restricted to the current selection. */
+    /** The same format restricted to the current selection - named
+     * places only, like [exportJson]. */
     fun exportSelectedJson(): String {
         val ids = selection.selected.value
-        return exportPlacesJson(places.value.filter { it.id in ids })
+        return exportPlacesJson(places.value.filter { it.id in ids && it.isNamed })
     }
+
+    private val _radiusConflicts =
+        MutableStateFlow<List<RadiusConflict>>(emptyList())
+
+    /** Places in the last import that are already here with a different
+     * radius, waiting for the user to pick one. Empty when there's
+     * nothing to ask. */
+    val radiusConflicts: StateFlow<List<RadiusConflict>> =
+        _radiusConflicts.asStateFlow()
 
     /**
      * Accepts our own JSON backup, a generic CSV (name, lat, lng[,
@@ -172,21 +191,51 @@ class PlacesViewModel(
      * picked from the file extension when there is one, otherwise
      * sniffed from the content itself.
      *
-     * Imported places are inserted directly; they aren't yet linked to
-     * any ride, so there's nothing to re-resolve here the way
-     * updatePlace() does via PlaceBoundaryEnforcer.
+     * Only named places are imported, and one already here is not
+     * duplicated - see planPlacesImport. A match with a different radius
+     * is left untouched and put in [radiusConflicts] for the user to
+     * confirm.
+     *
+     * Each place written goes through PlaceBoundaryEnforcer, the same as
+     * one saved in the editor. On a phone with rides of its own, an
+     * imported "Home" has to claim the stops already recorded there, or
+     * they'd stay on their placeholders.
      */
-    suspend fun importPlaces(text: String, fileName: String?): Int {
+    suspend fun importPlaces(text: String, fileName: String?): PlacesImportPlan {
         val parsed = parsePlacesAuto(text, fileName)
 
         // Written on viewModelScope but awaited by the caller - see the
         // same note on RidesViewModel.importJson.
-        viewModelScope.launch {
-            for (place in parsed) {
+        val plan = viewModelScope.async {
+            val plan = planPlacesImport(parsed, placeDao.getAllOnce())
+            for (place in plan.toWrite) {
                 placeDao.upsert(place)
             }
-        }.join()
+            for (place in plan.toWrite) {
+                boundaryEnforcer.enforceBoundary(place.id)
+            }
+            plan
+        }.await()
 
-        return parsed.size
+        _radiusConflicts.value = plan.conflicts
+        return plan
+    }
+
+    /**
+     * The user's answer to [radiusConflicts]: each conflict in [useFile]
+     * takes the file's radius, the rest keep theirs. Only the radius
+     * changes - the existing row keeps its id, name and location, so
+     * nothing linked to it is disturbed beyond what the new boundary
+     * covers.
+     */
+    fun resolveRadiusConflicts(useFile: List<RadiusConflict>) {
+        _radiusConflicts.value = emptyList()
+        if (useFile.isEmpty()) return
+        viewModelScope.launch {
+            for (conflict in useFile) {
+                placeDao.upsert(conflict.existing.copy(radiusMeters = conflict.incoming.radiusMeters))
+                boundaryEnforcer.enforceBoundary(conflict.existing.id)
+            }
+        }
     }
 }

@@ -997,6 +997,8 @@ first: *Restore from backup*, which replaces everything and is disabled
 mid-ride, and *Repair place links*, whose orphan sweep cannot tell a
 deleted place's leftovers from a ride import whose places haven't been
 imported yet. That warning existed only as a code comment before.
+*(The import half of that warning is superseded by "A Rides Import
+Re-Links Its Own Places" below.)*
 
 None of this makes it the export feature. That is still the JSON export.
 
@@ -1444,3 +1446,51 @@ place extends) is not kept. A kill mid-visit can split one visit into
 two stops at the same place. The rides table and stops list already
 show consecutive stops at one place as one (`StopGroup`), so it shows
 the same either way.
+
+## Decision: Places Travel Between Phones by Name
+
+The places file is for copying places to another phone. Unnamed
+placeholders exist to hold one phone's ride points; on another phone they
+are clutter, so export and import both carry named places only.
+
+Two phones that both have "Home" have each averaged it from their own
+rides, so the centres differ by a few metres and the ids differ
+entirely. Matching on id alone duplicated every shared place. A file's
+place is now the same as a named place here when the ids match or the
+centres are within 10 m (`SAME_PLACE_METERS`). That is above GPS
+scatter and below any radius worth drawing, so a shop drawn inside a
+mall stays its own place. Unnamed places here never match; the boundary
+pass absorbs them.
+
+A match keeps the row already here, because rides and stops link to its
+id. Same radius, nothing happens. A different radius is not overwritten:
+a radius decides which stops a place claims, so changing it on the phone
+that recorded them is the user's call. They tick each one to change;
+nothing is ticked to start with.
+
+Imports used to skip `enforceBoundary()` on the reasoning that a new
+place has no links. That held only on an empty phone. Every place an
+import writes, or re-radiuses, now goes through it, the same as a save
+in the editor.
+
+## Decision: A Rides Import Re-Links Its Own Places
+
+A ride carries its place ids, and those are the exporting phone's. On
+another phone they point at nothing, so every imported ride read `-`
+until the user ran **Repair place links**, which was only safe once the
+places had been imported too.
+
+The import now re-links them itself (`reattachImported()`): for the rides
+it just wrote, any place id this phone doesn't have is re-resolved from
+the recorded point, the same as after a delete. A ride that started at
+the other phone's "Home" lands on this one's "Home" if its point is
+inside it, and on a placeholder otherwise.
+
+The reason this used to be avoided was that a ride imported before its
+places would be stranded on placeholders the real places couldn't
+reclaim. That stopped being true when places imports started running
+`enforceBoundary()` (see "Places Travel Between Phones by Name"): a named
+place imported later claims the points inside it and deletes the
+placeholders it empties. So neither import has to come first, and Repair
+no longer needs to warn about imports.
+

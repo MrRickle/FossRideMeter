@@ -108,6 +108,7 @@ outside users yet.
 
 * Rides export/import as JSON via SAF, stops included in the bundle.
 * Places export as JSON; import auto-detects JSON, CSV, or GPX.
+* Places export and import named places only; a place already here at a different radius asks before changing it.
 * Raw `.db` file backup and restore, on the Advanced screen.
 
 ### Surviving an upgrade

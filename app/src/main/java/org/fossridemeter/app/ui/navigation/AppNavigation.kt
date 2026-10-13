@@ -97,6 +97,7 @@ import org.fossridemeter.app.ui.FossRideMeter
 import org.fossridemeter.app.ui.HelpScreen
 import org.fossridemeter.app.ui.LicenseScreen
 import org.fossridemeter.app.ui.RidesScreen
+import org.fossridemeter.app.ui.PlaceRadiusConflictDialog
 import org.fossridemeter.app.ui.PlacesScreen
 import org.fossridemeter.app.ui.PlacesViewModel
 import org.fossridemeter.app.ui.shownPlaces
@@ -104,6 +105,7 @@ import org.fossridemeter.app.ui.SettingsScreen
 import org.fossridemeter.app.util.downloadsPickerUri
 import org.fossridemeter.app.util.fileNameFromUri
 import org.fossridemeter.app.util.fileSizeFromUri
+import org.fossridemeter.app.util.gpsAccuracyUnit
 import org.fossridemeter.app.util.saveTextToDownloads
 import org.fossridemeter.app.util.readTextFromUri
 import org.fossridemeter.app.util.writeTextToUri
@@ -425,9 +427,14 @@ fun AppNavigation() {
     val placesSelectedExportLauncher =
         rememberJsonExportLauncher { placesViewModel.exportSelectedJson() }
     val placesImportLauncher = rememberTextImportLauncher { text, fileName ->
-        val imported = placesViewModel.importPlaces(text, fileName)
-        if (imported == 0) "That file had no places in it."
-        else "Imported ${countOf(imported, "place", "places")}."
+        val plan = placesViewModel.importPlaces(text, fileName)
+        val found = plan.toWrite.size + plan.conflicts.size + plan.alreadyHere
+        if (found == 0) "That file had no named places in it."
+        else buildString {
+            append("Imported ${countOf(plan.toWrite.size, "place", "places")}.")
+            if (plan.alreadyHere > 0) append(" ${plan.alreadyHere} already here.")
+            if (plan.conflicts.isNotEmpty()) append(" ${plan.conflicts.size} with a different radius.")
+        }
     }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -838,6 +845,15 @@ fun AppNavigation() {
                 }
             }
         ) { innerPadding ->
+
+            val radiusConflicts by placesViewModel.radiusConflicts.collectAsState()
+            if (radiusConflicts.isNotEmpty()) {
+                PlaceRadiusConflictDialog(
+                    conflicts = radiusConflicts,
+                    unit = rideViewModel.settings.value.measurementSystem.gpsAccuracyUnit,
+                    onDone = { placesViewModel.resolveRadiusConflicts(it) }
+                )
+            }
 
             if (showDeleteSelectedConfirm) {
                 val what = if (isRidesRoute) "ride" else "place"

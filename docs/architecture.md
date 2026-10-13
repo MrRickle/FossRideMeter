@@ -542,11 +542,15 @@ flags are easy to conflate:
   or lost points is recomputed, whichever path ran.
 
   Deletion is targeted at the ids just deleted rather than sweeping for
-  anything dangling, because an imported ride may legitimately reference a
-  place whose own import hasn't happened yet; re-resolving that would
-  strand it on a placeholder the real place could no longer reclaim.
-  `reattachOrphans()` is the unrestricted sweep and exists only as a
-  an Advanced-screen action for rows orphaned before deletion re-resolved them.
+  anything dangling, so a delete only touches what pointed at what it
+  deleted. `reattachImported()` is the same re-resolution limited to the
+  rides a rides import just wrote (and their stops): their place ids are
+  the exporting phone's, and any this phone lacks are re-linked from the
+  recorded points as the import lands. A named place imported afterwards
+  claims its points back from the placeholders through `enforceBoundary()`,
+  so the order of the two imports doesn't matter.
+  `reattachOrphans()` is the unrestricted sweep and exists only as an
+  Advanced-screen action for rows orphaned before deletion re-resolved them.
 
   `enforceBoundaryForAll()` runs the whole pass over every named place and
   is likewise an Advanced-screen action, for databases that predate any of it.
@@ -922,7 +926,8 @@ User-facing export and import go through the Storage Access Framework
 (`util/UriIo.kt`), reachable from the TopAppBar overflow menu.
 
 * **Rides** — JSON (`RidesBackup.kt`). A ride's stops travel inside the
-  ride bundle. A ride referencing an absent place id renders `-`.
+  ride bundle. Place ids this phone doesn't have are re-linked from the
+  recorded points on import (`reattachImported()`).
 * **Places** — JSON export; import auto-detects JSON, CSV, or GPX
   (`PlacesBackup.kt`, `parsePlacesAuto`).
 
@@ -943,8 +948,7 @@ The name is a promise, and two buttons keep it. **Restore** asks first,
 naming the backup's date and saying the app will close, and is disabled
 while a ride is running or paused — it replaces the database that ride is
 being written into. **Repair place links** asks first as well, because
-its orphan sweep cannot tell a deleted place's leftovers from a ride
-import whose places haven't been imported yet.
+it re-links every dangling point at once and can't be undone.
 
 ## Build information
 

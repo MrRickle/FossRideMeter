@@ -37,9 +37,10 @@ private val ridesBackupJson = Json {
 // A Stop is meaningless without its ride, so rides and their stops travel
 // together in one bundle even though Rides and Places are otherwise
 // exported/imported completely independently (rides only ever reference
-// places by id - startPlaceId/endPlaceId - which resolve to "-" in the UI
-// if the place isn't present, so there's no hard ordering requirement
-// between a Rides import and a Places import).
+// places by id - startPlaceId/endPlaceId. Those are the exporting phone's
+// ids; an import re-links any this phone doesn't have from the recorded
+// points, and a place imported later claims the points inside it, so
+// there's no ordering requirement between a Rides and a Places import).
 @Serializable
 data class RideBackupEntry(
     val ride: RideRecord,

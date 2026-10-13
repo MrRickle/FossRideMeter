@@ -71,8 +71,8 @@ import java.util.Date
  * The name is a promise, and two buttons had to change to keep it. Both
  * Restore and Repair place links used to act on a single tap; both now
  * say what they are about to do and wait to be told again. Repair is the
- * one to read: its orphan sweep cannot tell a deleted place's leftovers
- * from a ride import whose places haven't been imported yet.
+ * one to read: it re-links every dangling point at once and can't be
+ * taken back.
  *
  * See "The Advanced screen is a user-facing screen" in docs/decisions.md.
  */
@@ -154,9 +154,8 @@ fun AdvancedScreen(
         // inside a place named later, and rows still pointing at a place
         // that was deleted before the deletion re-resolved anything.
         //
-        // Kept manual because the orphan sweep cannot tell a deletion's
-        // leftovers from a ride import whose places haven't been imported
-        // yet: run it only when no half-finished import is waiting.
+        // A rides import re-links its own rides as it lands, so imports
+        // no longer leave anything for this to find.
         Button(onClick = { confirmRepair = true }) {
             Text("Repair place links")
         }
@@ -293,11 +292,7 @@ fun AdvancedScreen(
                 Text(
                     "Rides and stops that point at a place which no longer " +
                             "exists are re-linked to the place they fall " +
-                            "inside.\n\nDon't run this with an unfinished " +
-                            "import. A ride imported before its places are " +
-                            "imported looks the same as a broken link, and " +
-                            "will be re-linked to the wrong place.\n\nThis " +
-                            "cannot be undone."
+                            "inside.\n\nThis cannot be undone."
                 )
             },
 

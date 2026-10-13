@@ -104,16 +104,33 @@ class PlaceBoundaryEnforcer(
      * away comes straight back as a geohash placeholder rather than
      * leaving the row pointing at nothing.
      *
-     * Deliberately targeted rather than a sweep for anything dangling:
-     * imported rides can legitimately reference places that haven't been
-     * imported yet (see RidesBackup), and re-resolving those would strand
-     * them on placeholders that the real places, imported later, could no
-     * longer reclaim. reattachOrphans() is the sweep, and it is manual.
+     * Deliberately targeted rather than a sweep for anything dangling,
+     * so a delete only ever touches what pointed at what it deleted.
+     * reattachOrphans() is the sweep, and it is manual.
      */
     suspend fun reattachDeleted(placeIds: Collection<String>) {
         if (placeIds.isEmpty()) return
         val gone = placeIds.toSet()
         reattach { it in gone }
+    }
+
+    /**
+     * Called after a rides import, with the ids of the rides it wrote.
+     * Their place ids are the other phone's, and any this phone doesn't
+     * have are re-resolved from the points the rides recorded - so a ride
+     * that started at the other phone's "Home" lands on this phone's
+     * "Home", whatever its id.
+     *
+     * Rides imported before their places used to be left dangling for
+     * the places to arrive. They don't need to be any more: a named place
+     * imported afterwards goes through enforceBoundary(), which claims
+     * the points inside it back from the placeholders made here.
+     */
+    suspend fun reattachImported(rideIds: Collection<String>) {
+        if (rideIds.isEmpty()) return
+        val imported = rideIds.toSet()
+        val known = placeDao.getAllOnce().mapTo(mutableSetOf()) { it.id }
+        reattach(includesRide = { it in imported }) { it !in known }
     }
 
     /**
@@ -244,11 +261,16 @@ class PlaceBoundaryEnforcer(
      * cleared instead - that reads as `-` exactly as the dangling id did,
      * without leaving a reference to a place that isn't there.
      */
-    private suspend fun reattach(isGone: (String) -> Boolean) {
+    private suspend fun reattach(
+        includesRide: (String) -> Boolean = { true },
+        isGone: (String) -> Boolean,
+    ) {
 
         val touchedPlaceIds = mutableSetOf<String>()
 
         for (ride in rideDao.getAllOnce()) {
+            if (!includesRide(ride.id)) continue
+
             var updated = ride
             var changed = false
 
@@ -272,7 +294,7 @@ class PlaceBoundaryEnforcer(
         }
 
         for (stop in stopDao.getAllOnce()) {
-            if (stop.placeId?.let(isGone) == true) {
+            if (includesRide(stop.rideId) && stop.placeId?.let(isGone) == true) {
                 stopDao.update(
                     stop.copy(placeId = stop.location?.let { resolve(it, touchedPlaceIds) })
                 )
