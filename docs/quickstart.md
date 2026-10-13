@@ -93,6 +93,15 @@ backup is switched off, so
 Export them yourself: In both the Rides and Places screens, tap the three dots, then
 **Export**. Both write a JSON file wherever you point them, and Import reads them back.
 
+* Places export only the places you have named. Unnamed places stay behind.
+* Places import skips places already on the phone.
+* If one is already there with a different radius, you pick which radius to keep.
+
+To copy your places and rides to another phone:
+1. Export Places and Rides on the old phone.
+2. Import both on the new phone, in either order.
+3. Imported rides link to the new phone's places by themselves.
+
 Uninstalling the app deletes everything it holds, including the database
 backup on the Advanced screen. **Export** before you uninstall.
 
