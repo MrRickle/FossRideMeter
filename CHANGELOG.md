@@ -4,6 +4,23 @@ Notable changes per release. Dates are the release date, not the build
 date. Versions follow `MAJOR.MINOR.PATCH`; while the leading digit is 0
 the shape of things may still change between minor versions.
 
+## 0.1.9 — 2026-11-20
+
+### Added
+
+- **Name rides by stops.** A new setting, under stops in Settings, names
+  a saved ride after its first and last stops at places you've named,
+  instead of where it started and ended. For rides that start and end at
+  home, which are otherwise all "Home -> Home". A ride with no named stop
+  keeps the start and end name. Off unless you turn it on.
+
+### Fixed
+
+- **Renaming the ride in progress from the Rides list sticks.** Changing
+  its name or amount there was undone within a few seconds, because the
+  ride rewrites itself as it goes. Now the change goes to the ride
+  itself.
+
 ## 0.1.8 — 2026-10-13
 
 ### Changed
