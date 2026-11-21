@@ -566,6 +566,34 @@ private fun SettingsStopsSection(
             )
         }
     )
+
+    Spacer(Modifier.height(8.dp))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Column(modifier = Modifier.weight(1f)) {
+
+            Text("Name rides by stops")
+
+            Text(
+                text = "Name a saved ride after its first and last " +
+                        "named stops instead of where it started and " +
+                        "ended. Rides with no named stop keep the " +
+                        "start and end.",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        Switch(
+            checked = settings.nameRidesByStops,
+            onCheckedChange = {
+                onSettingsChanged(settings.copy(nameRidesByStops = it))
+            }
+        )
+    }
 }
 
 

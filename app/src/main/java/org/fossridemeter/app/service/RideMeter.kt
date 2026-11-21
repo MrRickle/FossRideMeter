@@ -37,6 +37,7 @@ import org.fossridemeter.app.data.PlaceResolver
 import org.fossridemeter.app.data.PlaceLocationRecalculator
 import org.fossridemeter.app.data.LiveRideStore
 import org.fossridemeter.app.data.StopDao
+import org.fossridemeter.app.data.PlaceDao
 import org.fossridemeter.app.model.RideRecord
 import org.fossridemeter.app.model.Stop
 import org.fossridemeter.app.model.toRecord
@@ -55,6 +56,7 @@ class RideMeter(
     private val placeResolver: PlaceResolver,
     private val placeLocationRecalculator: PlaceLocationRecalculator,
     private val stopDao: StopDao,
+    private val placeDao: PlaceDao,
     private val liveRideStore: LiveRideStore,
     // Every action sounds from here rather than from the button that
     // caused it, so an automatic start is as audible as a tapped one -
@@ -232,13 +234,23 @@ class RideMeter(
      * folded in at save: while a ride runs, the end place is whatever
      * stop it last passed through, and a name that rewrote itself at
      * every stop would be noise.
+     *
+     * [stopNames], when not empty, replaces both ends - see
+     * [namedStopNames]. One stop is the whole story of where the ride
+     * went, so it stands alone rather than as "Grocery -> Grocery".
      */
-    private fun automaticName(includeEnd: Boolean): String {
+    private fun automaticName(includeEnd: Boolean, stopNames: List<String> = emptyList()): String {
 
         val started = Instant.ofEpochMilli(_ride.value.startTime)
             .atZone(ZoneId.systemDefault())
 
         val date = started.format(DateTimeFormatter.ofPattern("MM/dd"))
+
+        if (stopNames.isNotEmpty()) {
+            return if (stopNames.size == 1) "$date ${stopNames.first()}"
+            else "$date ${stopNames.first()} -> ${stopNames.last()}"
+        }
+
         val start = _ride.value.startPlaceName
             ?: return "$date ${started.format(DateTimeFormatter.ofPattern("h:mm a"))}"
 
@@ -875,8 +887,10 @@ class RideMeter(
         // ride, which is only known here. One the user cleared is
         // treated as never having been named at all.
         if (nameIsAutomatic || _ride.value.name.isBlank()) {
+            val stopNames =
+                if (activeSettings.nameRidesByStops) namedStopNames() else emptyList()
             _ride.value = _ride.value.copy(
-                name = automaticName(includeEnd = true)
+                name = automaticName(includeEnd = true, stopNames = stopNames)
             )
         }
 
@@ -1071,6 +1085,23 @@ class RideMeter(
             }
         }
     }
+
+    /**
+     * The names of the ride's stops at places the user has named, in
+     * order, for Settings.nameRidesByStops: a ride that auto-starts and
+     * auto-saves at home is "Home -> Home" every time, and the stops are
+     * where it actually went.
+     *
+     * Read from the place rows now rather than from stopPlaceNames, so a
+     * spot named from the stops list during the ride counts, and an
+     * unnamed one - whose name is its geohash - doesn't put "9zz3d8v5"
+     * in the ride's name. No named stops gives an empty list, and the
+     * name falls back to the start and end places.
+     */
+    private suspend fun namedStopNames(): List<String> =
+        _ride.value.stopPlaceIds.mapNotNull { id ->
+            placeDao.getById(id)?.takeIf { it.isNamed }?.name
+        }
 
     private fun startPersisting() {
 

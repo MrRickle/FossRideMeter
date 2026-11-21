@@ -58,6 +58,7 @@ class SettingsRepository(
         val minimumAmount = doublePreferencesKey("minimum_amount")
         val placeNameDepth = intPreferencesKey("place_name_depth")
         val stopDetectionMinutes = intPreferencesKey("stop_detection_minutes")
+        val nameRidesByStops = booleanPreferencesKey("name_rides_by_stops")
         val autoWatchSeconds = intPreferencesKey("auto_watch_seconds")
         val autoSaveGraceMinutes = intPreferencesKey("auto_save_grace_minutes")
         val autoWatchAccuracy = stringPreferencesKey("auto_watch_accuracy")
@@ -117,6 +118,8 @@ class SettingsRepository(
                     preferences[Keys.placeNameDepth] ?: defaults.placeNameDepth,
                 stopDetectionMinutes =
                     preferences[Keys.stopDetectionMinutes] ?: defaults.stopDetectionMinutes,
+                nameRidesByStops =
+                    preferences[Keys.nameRidesByStops] ?: defaults.nameRidesByStops,
                 autoWatchSeconds =
                     preferences[Keys.autoWatchSeconds] ?: defaults.autoWatchSeconds,
                 autoSaveGraceMinutes =
@@ -170,6 +173,8 @@ class SettingsRepository(
                 settings.placeNameDepth
             preferences[Keys.stopDetectionMinutes] =
                 settings.stopDetectionMinutes
+            preferences[Keys.nameRidesByStops] =
+                settings.nameRidesByStops
             preferences[Keys.autoWatchSeconds] =
                 settings.autoWatchSeconds
             preferences[Keys.autoSaveGraceMinutes] =

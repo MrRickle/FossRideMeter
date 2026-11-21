@@ -67,6 +67,13 @@ data class Settings(
     // than the driving one.
     val stopDetectionMinutes: Int = 3,
 
+    // Name a saved ride after its first and last stops at named places
+    // instead of where it started and ended. For rides that auto-start
+    // and auto-save at home, which are otherwise all "Home -> Home". Off
+    // by default, which keeps the start/end name; a ride with no named
+    // stop falls back to that either way. See RideMeter.namedStopNames.
+    val nameRidesByStops: Boolean = false,
+
     // How often PlaceWatcher takes a coarse fix while watching for a
     // departure. This is the whole battery budget of auto-start: the app
     // is otherwise idle, so the poll interval is the cost. Arrivals cost

@@ -23,7 +23,7 @@ the person who changed name.
 | `ride` | `RideScreen` | The driving screen: live meter and controls |
 | `rides` | `RidesScreen` | Saved ride history, one wide scrolling table |
 | `places` | `PlacesScreen` | Saved places, editable |
-| `settings` | `SettingsScreen` | Rates (including the stopped hourly rate), units, provider, stop detection, sounds |
+| `settings` | `SettingsScreen` | Rates (including the stopped hourly rate), units, provider, stop detection, naming rides by stops, sounds |
 
 The four settings that change how a ride is measured — stop detection, location check, auto-save grace and minimum speed — each say their default in the supporting line beneath them ("3 = default. How long stationary…"). The values come from `Settings()` via the `DEFAULTS` constant rather than being written into the strings: a default quoted on screen that no longer matches the code is worse than none, and this app has already had one number mean different things where it was stored and where it was shown.
 

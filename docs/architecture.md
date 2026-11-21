@@ -260,6 +260,22 @@ only at save, because while a ride runs `endPlaceName` is whichever stop
 it last passed through, and a name that rewrote itself at every stop
 would be noise.
 
+With `Settings.nameRidesByStops` on (Settings → Stops, off by default),
+`save()` names the ride after its stops instead: `MM/dd <first> -> <last>`,
+or `MM/dd <stop>` when there is one. Only stops at *named* places count
+(`namedStopNames()` reads the place rows at save, so a spot named during
+the ride counts and an unnamed geohash doesn't), and a ride with none
+falls back to the start/end name. It exists for rides that auto-start
+and auto-save at home, which otherwise are all `Home -> Home`. The live
+name is unchanged, so it still ends in `->` and `restore()` still knows
+it as automatic.
+
+The Rides list shows the live ride too, because its row exists from
+`start()`. An edit made there goes to `RideMeter` (`updateName` /
+`updateManualAmount`), not to the row: the meter rewrites the row from
+memory every `PERSIST_INTERVAL`, so a direct write was overwritten
+within five seconds.
+
 Both `save()` and the periodic persist write the row from `activeSettings`,
 the settings captured at `start()` — never from live settings — so a ride
 always keeps the rates it was actually metered at.

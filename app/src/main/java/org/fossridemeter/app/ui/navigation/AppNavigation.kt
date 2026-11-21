@@ -998,8 +998,26 @@ fun AppNavigation() {
                         settings = settings,
                         places = places,
                         stopsByRide = stopsByRide,
-                        onUpdateRide = {
-                            ridesViewModel.updateRide(it)
+                        onUpdateRide = { updated ->
+                            // The ride in progress is in this list too,
+                            // but its row is RideMeter's: the meter
+                            // rewrites it from memory every few seconds,
+                            // so an edit written straight to the row was
+                            // overwritten. Hand the changed field to the
+                            // meter instead, and only that field - the
+                            // row the dialog copied from can be seconds
+                            // behind the live ride.
+                            val stored = rides.firstOrNull { it.id == updated.id }
+                            if (stored != null && updated.id == rideViewModel.ride.value.id) {
+                                if (updated.name != stored.name) {
+                                    rideViewModel.updateName(updated.name)
+                                }
+                                if (updated.manualAmount != stored.manualAmount) {
+                                    rideViewModel.updateManualAmount(updated.manualAmount)
+                                }
+                            } else {
+                                ridesViewModel.updateRide(updated)
+                            }
                         },
                         onDeleteRide = {
                             ridesViewModel.deleteRide(it)

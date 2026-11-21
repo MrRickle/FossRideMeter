@@ -504,6 +504,7 @@ class RideTrackingService : Service() {
             placeResolver = AppRepository.getPlaceResolver(this),
             placeLocationRecalculator = AppRepository.getPlaceLocationRecalculator(this),
             stopDao = AppRepository.getStopDao(this),
+            placeDao = placeDao,
             liveRideStore = liveRideStore,
             // currentSettings is a var the settings collector keeps
             // fresh, so this reads whatever is set now rather than
