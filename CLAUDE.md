@@ -14,24 +14,15 @@ FossRideMeter is a GPL-3.0 Android app (Kotlin + Jetpack Compose, single `:app` 
 
 Builds are normally driven from Android Studio (snap install, bundled JBR 21). From the CLI, `./gradlew` fails with `JAVA_HOME is set to an invalid directory: /usr/lib/jvm/java-17-openjdk-amd64` — there is no system JDK on this machine. Set `JAVA_HOME` to Android Studio's bundled JBR (under the snap's `android-studio/jbr`) before running Gradle from a shell.
 
-```bash
-./gradlew assembleDebug            # build debug APK
-./gradlew installDebug             # build + install on connected device/emulator
-./gradlew lint                     # Android lint
-./gradlew test                     # JVM unit tests
-./gradlew connectedAndroidTest     # instrumented tests (device required)
-./gradlew testDebugUnitTest --tests "org.fossridemeter.app.SomeTest"   # single test
-```
-
 JVM tests: `MigrationConfigTest` (every version from the baseline up has a migration, and `rebuiltFromScratch()` is right on both boundaries), `AmountCalculatorTest` (the fare, including that the default rate is sane in the unit it is displayed in), and `HelpMarkdownTest` (the Help screen's inline markdown). Instrumented, device required: `MigrationTest` and `SchemaRescueTest`. New JVM tests go under `app/src/test/java/org/fossridemeter/app/`; the older `org/fossRideMeter/app/` directory (note the non-matching package casing) is empty.
 
-`compileSdk`/`targetSdk` 37, `minSdk` 26, JVM toolchain 17. Signing reads `keystore.properties` (gitignored) if present; both it and `local.properties` are local-only.
+Signing reads `keystore.properties` (gitignored) if present; both it and `local.properties` are local-only.
 
 **Debug builds are signed with the release key too**, when `keystore.properties` is there — falling back to the generated debug key when it isn't, so a clone still builds. Android refuses an install whose signature differs from the one on the device and the only way past that is an uninstall, which deletes the database; with the default debug key that made every trip between a test build and the published APK cost the phone's ride history. It was three keys, not two: Android Studio signs with `~/.android/debug.keystore`, a Gradle run that can't read that file generates its own, so two debug builds of the same commit could refuse each other — which is also what made `connectedAndroidTest` uninstallable against a real install. One key now, so any build installs over any other.
 
 Release builds are **minified** (R8 + resource shrinking, 14.1 MB → 1.9 MB). `app/proguard-rules.pro` only keeps what the libraries' own consumer rules don't: enum constant names under `org.fossridemeter.app.model`, because those are persisted by `.name` in DataStore, in a Room column via `Converters`, in exported JSON, and — since the interrupted-ride work — in `LiveRideStore`'s SharedPreferences, which is the one read *before* anything else at service create. Renaming one is a data format change that crashes an existing install at launch. Check `mapping.txt` for `RideStatus RUNNING -> RUNNING` after any release build that touches the model package. Keep `app/build/outputs/mapping/release/mapping.txt` for any build handed to anyone.
 
-`versionName` is `0.1.9`; `BuildConfig.GIT_VERSION` (short hash, `-dirty` suffix when the tree is dirty) and `BuildConfig.BUILD_TIME` (epoch millis, rendered in the device's local timezone by `AppVersion.buildTime`) are stamped at configure time and shown on the About screen so an installed build traces back to a commit. Because these run `git` during configuration, changing the working tree's dirty state invalidates the configuration cache.
+`BuildConfig.GIT_VERSION` (short hash, `-dirty` suffix when the tree is dirty) and `BuildConfig.BUILD_TIME` (epoch millis, rendered in the device's local timezone by `AppVersion.buildTime`) are stamped at configure time and shown on the About screen so an installed build traces back to a commit. Because these run `git` during configuration, changing the working tree's dirty state invalidates the configuration cache.
 
 **Check the repository builds from git, not just from disk.** `PlacesBackup.kt` and `RidesBackup.kt` sat in `.git/info/exclude` — a local file that is never pushed — and were missing from the published repo for its whole life, so a clone did not compile. Nothing local noticed, because every build used the working directory. `git worktree add --detach <tmp> HEAD` and building there is the check, and it is worth running before a release.
 
